@@ -1,43 +1,32 @@
 #!/usr/bin/env python3
 """
-Create a Zammad ticket via API (cron-friendly, non-interactive).
+Create one or more Zammad tickets via API from a YAML config file.
 
-Auth: Personal Access Token (PAT) via header: Authorization: Token token=...
-** This can be created from the Zammad web interface and does not need to be
-** made using API calls
-
-Required arguments:
-  --url (Base url for API calls)
-  --token (PAT token from Auth note above)
-  --title (Title of the ticket)
-  --group (Group that the ticket should apply to (e.g. ECEC IT, Oakdale IT, etc.)
-  --customer (Customer for the ticket - in the form of email address)
-  --subject (Subject for the ticket)
-  --body (Body of the first message on the ticket - this should be notes about what the ticket is for)
-
-Optional:
-  --type (default: note - See https://docs.zammad.org/en/latest/api/ticket/articles.html for other types)
-  --internal (default: false - True would make it an internal note)
-  --dedupe-key (Unique identifier to prevent the same task from running multiple times - recommended for cron)
-  --owner (email or username/login; script resolves to owner_id)
-  --owner-id (skip lookup; directly set owner_id)
-  --timeout (length of time (s) before the post message fails out - default: 30)
+- Reads Zammad URL and token from config.
+- Token best practice: store token in env var and reference it via zammad.token_env.
+- Creates one Zammad ticket per entry in tickets[].
+- Supports optional per-ticket owner or owner_id.
+- Supports defaults (group, article fields) with per-ticket overrides.
 
 Exit codes:
-  0 success (or dedupe prevented duplicate)
-  2 bad usage
-  4 API error
-  5 networking error
+  0 success (all tickets created)
+  2 bad usage / bad config
+  4 one or more tickets failed (API or validation)
+  5 networking error (if it occurs and prevents creating ticket(s))
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
-import urllib.error
+from typing import Any
+
+import yaml
 
 
 def http_json(
@@ -77,59 +66,12 @@ def http_json(
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Create a Zammad ticket via API.")
-    p.add_argument("--url", required=True, help="Zammad base URL, e.g. https://zammad.example.com")
-    p.add_argument("--token", required=True, help="Zammad Personal Access Token")
-
-    p.add_argument("--title", required=True, help="Ticket title")
-    p.add_argument("--group", required=True, help="Group name or ID")
-    p.add_argument("--customer", required=True, help="Customer email/login")
-
-    p.add_argument("--subject", required=True, help="Article subject")
-    p.add_argument("--body", required=True, help="Article body")
-
-    p.add_argument("--type", default="note", help="Article type (default: note)")
-    p.add_argument(
-        "--internal",
-        default="false",
-        choices=["true", "false"],
-        help="Whether the article is internal (default: false)",
-    )
-
-    p.add_argument(
-        "--dedupe-key",
-        default="",
-        help="If provided, script will avoid creating a duplicate ticket for this key (cron-safe).",
-    )
-
-    # Owner options:
-    p.add_argument(
-        "--owner",
-        default="",
-        help="Owner email or username/login. Script resolves this to owner_id via /users/search.",
-    )
-    p.add_argument(
-        "--owner-id",
-        type=int,
-        default=0,
-        help="Owner agent user ID (skips lookup).",
-    )
-
-    p.add_argument("--timeout", type=int, default=30, help="HTTP timeout seconds (default: 30)")
+    p = argparse.ArgumentParser(description="Create Zammad tickets via API from YAML.")
+    p.add_argument("--config", required=True, help="Path to YAML config file")
     return p.parse_args(argv)
 
 
 def resolve_owner_id(base: str, token: str, owner_query: str, timeout: int) -> int:
-    """
-    Resolve owner_query (email or login/username) to a unique user id via:
-      GET /api/v1/users/search?query=<owner_query>
-
-    Selection logic:
-      - Prefer exact (case-insensitive) match on: email OR login OR username
-      - If exactly one exact match -> return id
-      - If none exact but only one result -> return id (fallback)
-      - Otherwise fail (ambiguous or not found)
-    """
     q = urllib.parse.quote(owner_query, safe="")
     url = f"{base}/api/v1/users/search?query={q}"
 
@@ -147,7 +89,7 @@ def resolve_owner_id(base: str, token: str, owner_query: str, timeout: int) -> i
         v = u.get(k)
         return v.strip().lower() if isinstance(v, str) else ""
 
-    exact = []
+    exact: list[dict] = []
     for u in resp:
         if not isinstance(u, dict):
             continue
@@ -162,7 +104,6 @@ def resolve_owner_id(base: str, token: str, owner_query: str, timeout: int) -> i
             return uid
         raise RuntimeError(f"Resolved owner but missing numeric id in user record: {candidates[0]}")
 
-    # Ambiguous: produce a helpful error
     summary = []
     for u in candidates[:10]:
         uid = u.get("id")
@@ -173,87 +114,204 @@ def resolve_owner_id(base: str, token: str, owner_query: str, timeout: int) -> i
 
     raise RuntimeError(
         "Owner query is ambiguous; matches:\n  - " + "\n  - ".join(summary)
-        + "\nTip: use --owner-id to set it directly, or pass a more specific email/login."
+        + "\nTip: use owner_id to set it directly, or pass a more specific email/login."
     )
+
+
+def load_config(path: str) -> dict[str, Any]:
+    with open(path, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    if not isinstance(data, dict):
+        raise ValueError("Config root must be a mapping/object")
+    if "zammad" not in data or not isinstance(data["zammad"], dict):
+        raise ValueError("Config must contain 'zammad:' as a mapping/object")
+    tickets = data.get("tickets")
+    if not isinstance(tickets, list) or len(tickets) == 0:
+        raise ValueError("Config must contain 'tickets:' as a non-empty list")
+    defaults = data.get("defaults", {})
+    if defaults and not isinstance(defaults, dict):
+        raise ValueError("'defaults' must be a mapping/object if provided")
+    return data
+
+
+def require_nonempty_str(v: Any, field: str, ctx: str) -> str:
+    if not isinstance(v, str) or not v.strip():
+        raise ValueError(f"{ctx}: '{field}' is required and must be a non-empty string")
+    return v.strip()
+
+
+def coalesce(*vals: Any) -> Any:
+    for v in vals:
+        if v is not None:
+            return v
+    return None
+
+
+def deep_merge_dicts(base: dict, override: dict) -> dict:
+    """
+    Merge override into base (both dicts) recursively, returning a new dict.
+    """
+    out = dict(base)
+    for k, v in override.items():
+        if k in out and isinstance(out[k], dict) and isinstance(v, dict):
+            out[k] = deep_merge_dicts(out[k], v)
+        else:
+            out[k] = v
+    return out
+
+
+def get_zammad_auth(cfg: dict[str, Any]) -> tuple[str, str, int]:
+    z = cfg["zammad"]
+    url = require_nonempty_str(z.get("url"), "url", "zammad")
+
+    timeout = z.get("timeout", 30)
+    if not isinstance(timeout, int) or timeout <= 0:
+        raise ValueError("zammad.timeout must be a positive integer if provided")
+
+    # token can be inline OR via env reference
+    token = z.get("token")
+    token_env = z.get("token_env")
+
+    if token is not None and token_env is not None:
+        raise ValueError("Use either zammad.token OR zammad.token_env, not both")
+
+    if token_env is not None:
+        token_env = require_nonempty_str(token_env, "token_env", "zammad")
+        env_val = os.environ.get(token_env, "")
+        if not env_val.strip():
+            raise ValueError(f"Environment variable '{token_env}' is not set or empty")
+        token = env_val.strip()
+    else:
+        token = require_nonempty_str(token, "token", "zammad")
+
+    return url.rstrip("/"), token, timeout
+
+
+def build_payload(ticket: dict, defaults: dict, ctx: str) -> dict:
+    # Start with defaults, then override with ticket
+    merged = deep_merge_dicts(defaults, ticket)
+
+    title = require_nonempty_str(merged.get("title"), "title", ctx)
+
+    group = merged.get("group")
+    if not ((isinstance(group, str) and group.strip()) or isinstance(group, int)):
+        raise ValueError(f"{ctx}: 'group' is required (string name or integer id)")
+
+    customer = require_nonempty_str(merged.get("customer"), "customer", ctx)
+
+    article = merged.get("article")
+    if not isinstance(article, dict):
+        raise ValueError(f"{ctx}: 'article' is required and must be a mapping/object")
+
+    subject = require_nonempty_str(article.get("subject"), "subject", f"{ctx}.article")
+    body = require_nonempty_str(article.get("body"), "body", f"{ctx}.article")
+
+    art_type = article.get("type", "note")
+    art_type = require_nonempty_str(art_type, "type", f"{ctx}.article")
+
+    internal = article.get("internal", False)
+    if not isinstance(internal, bool):
+        raise ValueError(f"{ctx}.article: 'internal' must be boolean true/false")
+
+    payload: dict = {
+        "title": title,
+        "group": group,
+        "customer": customer,
+        "article": {
+            "subject": subject,
+            "body": body,
+            "type": art_type,
+            "internal": internal,
+        },
+    }
+
+    # owner / owner_id (merged can include from defaults too, but usually per ticket)
+    owner = merged.get("owner", "")
+    owner_id = merged.get("owner_id", 0)
+
+    if owner and owner_id:
+        raise ValueError(f"{ctx}: use either 'owner' or 'owner_id', not both")
+
+    if owner and not isinstance(owner, str):
+        raise ValueError(f"{ctx}: 'owner' must be a string if provided")
+
+    if owner_id and not isinstance(owner_id, int):
+        raise ValueError(f"{ctx}: 'owner_id' must be an integer if provided")
+
+    # return these for later handling
+    payload["_owner"] = owner.strip() if isinstance(owner, str) else ""
+    payload["_owner_id"] = owner_id if isinstance(owner_id, int) else 0
+
+    return payload
 
 
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
 
-    base = args.url.rstrip("/")
-    token = args.token
-    timeout = args.timeout
-
-    internal_bool = True if args.internal == "true" else False
-
-    # Optional dedupe check
-    dedupe_marker = ""
-    if args.dedupe_key:
-        dedupe_marker = f"[dedupe:{args.dedupe_key}]"
-        query = urllib.parse.quote(dedupe_marker, safe="")
-        search_url = f"{base}/api/v1/tickets/search?query={query}"
-
-        try:
-            _, search_resp = http_json("GET", search_url, token, timeout=timeout)
-        except ConnectionError as e:
-            print(f"Network error during dedupe search: {e}", file=sys.stderr)
-            return 5
-        except RuntimeError as e:
-            print(f"API error during dedupe search: {e}", file=sys.stderr)
-            return 4
-
-        if dedupe_marker in json.dumps(search_resp, ensure_ascii=False):
-            print(f"Ticket already exists for dedupe key: {args.dedupe_key}")
-            return 0
-
-    title = args.title + (f" {dedupe_marker}" if dedupe_marker else "")
-
-    payload: dict = {
-        "title": title,
-        "group": args.group,
-        "customer": args.customer,
-        "article": {
-            "subject": args.subject,
-            "body": args.body,
-            "type": args.type,
-            "internal": internal_bool,
-        },
-    }
-
-    # Owner resolution (optional)
-    owner_id = 0
-    if args.owner_id and args.owner:
-        print("Use either --owner or --owner-id, not both.", file=sys.stderr)
+    try:
+        cfg = load_config(args.config)
+        base, token, timeout = get_zammad_auth(cfg)
+    except Exception as e:
+        print(f"Bad config/auth: {e}", file=sys.stderr)
         return 2
 
-    if args.owner_id > 0:
-        owner_id = args.owner_id
-    elif args.owner:
-        try:
-            owner_id = resolve_owner_id(base, token, args.owner, timeout)
-        except ConnectionError as e:
-            print(f"Network error resolving owner: {e}", file=sys.stderr)
-            return 5
-        except RuntimeError as e:
-            print(f"API error resolving owner: {e}", file=sys.stderr)
-            return 4
+    defaults = cfg.get("defaults", {}) or {}
+    if defaults and not isinstance(defaults, dict):
+        print("Bad config: 'defaults' must be a mapping/object", file=sys.stderr)
+        return 2
 
-    if owner_id > 0:
-        payload["owner_id"] = owner_id
-
+    tickets = cfg["tickets"]
     create_url = f"{base}/api/v1/tickets"
 
-    try:
-        _, resp = http_json("POST", create_url, token, payload=payload, timeout=timeout)
-    except ConnectionError as e:
-        print(f"Network error creating ticket: {e}", file=sys.stderr)
-        return 5
-    except RuntimeError as e:
-        print(f"API error creating ticket: {e}", file=sys.stderr)
-        return 4
+    any_failed = False
+    any_network_error = False
 
-    print(json.dumps(resp, indent=2, ensure_ascii=False))
-    return 0
+    for i, t in enumerate(tickets, start=1):
+        ctx = f"tickets[{i}]"
+        if not isinstance(t, dict):
+            print(f"{ctx}: must be a mapping/object", file=sys.stderr)
+            any_failed = True
+            continue
+
+        try:
+            payload = build_payload(t, defaults, ctx)
+        except Exception as e:
+            print(f"{ctx}: invalid ticket: {e}", file=sys.stderr)
+            any_failed = True
+            continue
+
+        owner = payload.pop("_owner", "")
+        owner_id = payload.pop("_owner_id", 0)
+
+        if owner_id and owner_id > 0:
+            payload["owner_id"] = owner_id
+        elif owner:
+            try:
+                payload["owner_id"] = resolve_owner_id(base, token, owner, timeout)
+            except ConnectionError as e:
+                print(f"{ctx}: network error resolving owner: {e}", file=sys.stderr)
+                any_failed = True
+                any_network_error = True
+                continue
+            except RuntimeError as e:
+                print(f"{ctx}: API error resolving owner: {e}", file=sys.stderr)
+                any_failed = True
+                continue
+
+        try:
+            status, resp = http_json("POST", create_url, token, payload=payload, timeout=timeout)
+            print(json.dumps({"ticket_index": i, "http_status": status, "response": resp}, indent=2, ensure_ascii=False))
+        except ConnectionError as e:
+            print(f"{ctx}: network error creating ticket: {e}", file=sys.stderr)
+            any_failed = True
+            any_network_error = True
+        except RuntimeError as e:
+            print(f"{ctx}: API error creating ticket: {e}", file=sys.stderr)
+            any_failed = True
+
+    if any_network_error:
+        return 5
+    return 4 if any_failed else 0
 
 
 if __name__ == "__main__":

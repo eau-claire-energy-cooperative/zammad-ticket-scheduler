@@ -1,0 +1,26 @@
+zammad:
+  url: "https://zammad.example.com"
+  token_env: "ZAMMAD_TOKEN"
+  timeout: 30
+
+defaults:
+  group: "IT Support"
+  article:
+    type: "note"
+    internal: false
+
+tickets:
+  - title: "Example Ticket 1"
+    customer: "customer1@example.com"
+    article:
+      subject: "Subject line 1"
+      body: "Body text for ticket 1."
+
+  - title: "Example Ticket 2 (override defaults)"
+    group: "Networking"
+    customer: "customer2@example.com"
+    owner: "agent@example.com"     # optional
+    article:
+      subject: "Subject line 2"
+      body: "Body text for ticket 2."
+      internal: true               # override default
