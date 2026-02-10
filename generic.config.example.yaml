@@ -9,18 +9,21 @@ defaults:
     type: "note"
     internal: false
 
-tickets:
-  - title: "Example Ticket 1"
-    customer: "customer1@example.com"
-    article:
-      subject: "Subject line 1"
-      body: "Body text for ticket 1."
+jobs:
+  - name: "Daily reminder"
+    cron: "0 9 * * *"   # every day at 9:00
+    tickets:
+      - title: "Daily reminder"
+        customer: "ops@example.com"
+        article:
+          subject: "Daily check-in"
+          body: "Time for the daily check-in!"
 
-  - title: "Example Ticket 2 (override defaults)"
-    group: "Networking"
-    customer: "customer2@example.com"
-    owner: "agent@example.com"     # optional
-    article:
-      subject: "Subject line 2"
-      body: "Body text for ticket 2."
-      internal: true               # override default
+  - name: "Weekly report"
+    cron: "0 8 * * 1"   # every Monday at 8:00
+    tickets:
+      - title: "Weekly status"
+        customer: "ops@example.com"
+        article:
+          subject: "Weekly report needed"
+          body: "Please provide weekly report."
