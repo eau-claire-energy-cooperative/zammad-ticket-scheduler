@@ -128,6 +128,8 @@ Each ticket supports:
 
 ### Run with Docker Compose
 
+Note: this repo contains a generic `docker-compose.yml` file automatically. Feel free to adjust the file as needed for your own use, but using this docker file will start this process.
+
 1. Copy `.env.example` to `.env` and update the values.
 2. Copy `schedule.example.yaml` to `schedule.yaml` and update the schedule/jobs.
 3. Start the container:
@@ -227,4 +229,4 @@ Logs will be written to:
 
 ## License
 
-MIT
+GPLv3
