@@ -31,9 +31,9 @@ This project is designed for Docker use (logs to stdout, supports clean shutdown
 
 ### Install Dependencies
 
-[fixme]bash
+```bash
 pip install pyyaml croniter
-[fixme]
+```
 
 ### Copy Sample Config Files
 
@@ -132,23 +132,23 @@ Each ticket supports:
 2. Copy `schedule.example.yaml` to `schedule.yaml` and update the schedule/jobs.
 3. Start the container:
 
-[fixme]bash
+```bash
 docker compose up -d
-[fixme]
+```
 
 To view logs:
 
-[fixme]bash
+```bash
 docker compose logs -f
-[fixme]
+```
 
 ---
 
 ### Run the Scheduler
 
-[fixme]bash
+```bash
 python scheduler.py --schedule schedule.yaml
-[fixme]
+```
 
 The scheduler checks once per minute and runs any job that is due.
 
@@ -163,9 +163,9 @@ To run the ticket creation script manually, you must provide the following envir
 
 Then run:
 
-[fixme]bash
+```bash
 python zammad_create_ticket.py --config config.yaml
-[fixme]
+```
 
 ---
 
@@ -178,7 +178,7 @@ Note: `schedule.yaml` is the scheduler config (jobs + cron).
 
 Here is a minimal example config you can run manually:
 
-[fixme]yaml
+```yaml
 zammad:
   timeout: 30
 
@@ -189,13 +189,13 @@ tickets:
     article:
       subject: "Test Ticket"
       body: "This ticket was created manually via the API script."
-[fixme]
+```
 
 Run it by setting `ZAMMAD_URL` and `ZAMMAD_TOKEN` in your environment, then running:
 
-[fixme]bash
+```bash
 python zammad_create_ticket.py --config config.yaml
-[fixme]
+```
 
 ---
 
@@ -208,9 +208,9 @@ To also log into a file, set the environment variable:
 - `SCHEDULER_LOG_TO_FILE=1`
 
 Logs will be written to:
-[fixme]
+```
 ./tmp/scheduler.log
-[fixme]
+```
 
 ---
 
