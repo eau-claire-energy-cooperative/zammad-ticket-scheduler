@@ -111,6 +111,43 @@ def is_due(cron_expr: str, last_check: datetime, now: datetime) -> bool:
     next_time = itr.get_next(datetime)
     return last_check < next_time <= now
 
+def expected_tmp_files(cfg: dict, tmp_dir: Path) -> set[Path]:
+    """Return the set of tmp YAML files that should exist for current jobs."""
+    jobs = cfg.get("jobs", []) or []
+    out: set[Path] = set()
+    for job in jobs:
+        if not isinstance(job, dict):
+            continue
+        name = job.get("name", "unnamed")
+        safe_name = safe_filename(name)
+        out.add(tmp_dir / f"sched_{safe_name}.yaml")
+    return out
+
+
+def prune_stale_tmp_files(cfg: dict, tmp_dir: Path, logger: logging.Logger) -> None:
+    """Remove tmp YAML files for jobs that no longer exist in the schedule."""
+    keep = expected_tmp_files(cfg, tmp_dir)
+
+    existing = sorted(tmp_dir.glob("sched_*.yaml"))
+    logger.info(f"PRUNE: tmp_dir={tmp_dir} keep={len(keep)} existing={len(existing)}")
+
+    # Show what we think should be kept (filenames only)
+    for k in sorted(keep):
+        logger.info(f"  KEEP: {k.name}")
+
+    # Show what files we actually see on disk
+    for p in existing:
+        logger.info(f"  SEEN: {p.name}")
+
+    # Delete anything seen that isn't in keep
+    for p in existing:
+        if p not in keep:
+            try:
+                p.unlink()
+                logger.info(f"  DELETE: {p.name}")
+            except Exception as e:
+                logger.warning(f"  DELETE FAILED: {p.name} | {e}")
+
 
 def run_scheduler(schedule_path_str: str) -> None:
     """
@@ -140,6 +177,7 @@ def run_scheduler(schedule_path_str: str) -> None:
 
     cfg = load_schedule(schedule_path)
     last_mtime = schedule_mtime(schedule_path)
+    prune_stale_tmp_files(cfg, tmp_dir, logger)
 
     # Window tracking for cron checks
     last_run = datetime.now()
@@ -154,6 +192,7 @@ def run_scheduler(schedule_path_str: str) -> None:
                 cfg = load_schedule(schedule_path)
                 last_mtime = mtime
                 logger.info("Schedule file changed; reloaded.")
+                prune_stale_tmp_files(cfg, tmp_dir, logger)
         except Exception as e:
             # Keep running using last known config
             logger.error(f"Failed to reload schedule file: {e}", exc_info=True)
