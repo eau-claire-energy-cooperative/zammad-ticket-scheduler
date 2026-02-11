@@ -1,0 +1,36 @@
+# schedule.example.yaml
+
+zammad:
+  url: "https://your-zammad-instance.com"
+  token_env: "ZAMMAD_TOKEN"
+  timeout: 30
+
+defaults:
+  group: "Users"
+  article:
+    type: "note"
+    internal: false
+
+jobs:
+  - name: "Normal scheduled ticket (uses defaults)"
+    cron: "0 9 * * *"
+    tickets:
+      - title: "Daily Scheduled Ticket"
+        customer: "customer@example.com"
+        article:
+          subject: "Daily Ticket"
+          body: |
+            This ticket uses the default group and default article settings.
+
+  - name: "Ticket overriding defaults"
+    cron: "0 10 * * *"
+    tickets:
+      - title: "Override Example Ticket"
+        customer: "customer@example.com"
+        group: "Support"
+        article:
+          subject: "Overrides Defaults"
+          body: |
+            This ticket overrides the default group and sets internal to true.
+          internal: true
+          type: "email"
