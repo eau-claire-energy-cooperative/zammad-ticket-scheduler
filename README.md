@@ -151,8 +151,8 @@ To run the scheduler or ticket creation script manually, you must provide the fo
 - `ZAMMAD_URL`
 - `ZAMMAD_TOKEN`
 
-Note: `schedule.yaml` is the scheduler config (jobs + cron).  
-`config.yaml` is the direct ticket config format used by `zammad_create_ticket.py`.
+Note: `schedule.yaml` is the scheduler config (jobs + cron) used by `scheduler.py`
+`config.yaml` is the direct ticket config format used by `zammad_create_ticket.py`
 
 ### Run the Scheduler
 
