@@ -25,7 +25,7 @@ This project is designed for Docker use (logs to stdout, supports clean shutdown
 
 ### Requirements
 
-- Python 3.9+
+- Python 3.10+
 - Zammad API token
 - Zammad instance URL
 
