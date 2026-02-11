@@ -1,8 +1,6 @@
 # schedule.example.yaml
 
 zammad:
-  url: "https://your-zammad-instance.com"
-  token_env: "ZAMMAD_TOKEN"
   timeout: 30
 
 defaults:

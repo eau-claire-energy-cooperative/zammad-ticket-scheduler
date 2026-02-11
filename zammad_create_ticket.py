@@ -122,9 +122,10 @@ def get_auth(cfg: dict) -> tuple[str, str, int]:
     if not isinstance(z, dict):
         raise ValueError("Config must contain 'zammad:' as a mapping/object")
 
-    base = str(z.get("url", "")).strip().rstrip("/")
+    # URL comes from environment (provided via docker compose .env)
+    base = os.environ.get("ZAMMAD_URL", "").strip().rstrip("/")
     if not base:
-        raise ValueError("zammad.url is required")
+        raise ValueError("ZAMMAD_URL environment variable is required")
 
     timeout = z.get("timeout", 30)
     try:
@@ -134,20 +135,10 @@ def get_auth(cfg: dict) -> tuple[str, str, int]:
     if timeout <= 0:
         timeout = 30
 
-    token_env = str(z.get("token_env", "")).strip()
-    token_inline = str(z.get("token", "")).strip()
-
-    if token_env and token_inline:
-        raise ValueError("Use either zammad.token OR zammad.token_env, not both")
-
-    if token_env:
-        token = os.environ.get(token_env, "").strip()
-        if not token:
-            raise ValueError(f"Environment variable '{token_env}' is not set or empty")
-    else:
-        token = token_inline
-        if not token:
-            raise ValueError("zammad.token is required (or set zammad.token_env)")
+    # Token comes from environment (provided via docker compose .env)
+    token = os.environ.get("ZAMMAD_TOKEN", "").strip()
+    if not token:
+        raise ValueError("ZAMMAD_TOKEN environment variable is required")
 
     return base, token, timeout
 
@@ -330,17 +321,10 @@ def main(argv: list[str]) -> int:
         try:
             status, resp = http_json("POST", create_url, token, payload=payload, timeout=timeout)
 
-            # Keep your original behavior: emit a JSON blob on success to stdout
-            print(
-                json.dumps(
-                    {"ticket_index": i, "http_status": status, "response": resp},
-                    indent=2,
-                    ensure_ascii=False,
-                ),
-                flush=True,
-            )
+            # Short success log to the console
+            ticket_id = resp.get("id") if isinstance(resp, dict) else None
+            logger.info(f"{ctx}: created (HTTP {status}) ticket_id={ticket_id}")
 
-            logger.info(f"{ctx}: created (HTTP {status})")
 
         except ConnectionError as e:
             logger.error(f"{ctx}: network error creating ticket: {e}")

@@ -130,7 +130,10 @@ def run_scheduler(schedule_path_str: str) -> None:
 
     logger.info("Scheduler started. Checking every minute.")
     logger.info(f"Schedule file: {schedule_path}")
-    logger.info("File logging: %s", "ON" if os.getenv("SCHEDULER_LOG_TO_FILE") == "1" else "OFF")
+    if os.getenv("SCHEDULER_LOG_TO_FILE", "").strip() == "1":
+        logger.info("File logging: ON")
+    else:
+        logger.info("File logging: OFF (SCHEDULER_LOG_TO_FILE=0)")
 
     if not schedule_path.exists():
         raise FileNotFoundError(f"Schedule YAML not found: {schedule_path}")
