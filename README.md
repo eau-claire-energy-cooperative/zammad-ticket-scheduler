@@ -35,6 +35,10 @@ This project is designed for Docker use (logs to stdout, supports clean shutdown
 pip install pyyaml croniter
 ```
 
+### Get the Code
+
+Clone this repository (or download it as a ZIP) onto the machine where you want it to run.
+
 ### Copy Sample Config Files
 
 This repo includes example config files:
