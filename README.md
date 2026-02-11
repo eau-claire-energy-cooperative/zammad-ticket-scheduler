@@ -144,6 +144,16 @@ docker compose logs -f
 
 ---
 
+To run the scheduler or ticket creation script manually, you must provide the following environment variables:
+
+- `ZAMMAD_URL`
+- `ZAMMAD_TOKEN`
+
+Note: `schedule.yaml` is the scheduler config (jobs + cron).  
+`config.yaml` is the direct ticket config format used by `zammad_create_ticket.py`.
+
+---
+
 ### Run the Scheduler
 
 ```bash
@@ -152,25 +162,13 @@ python scheduler.py --schedule schedule.yaml
 
 The scheduler checks once per minute and runs any job that is due.
 
----
-
 ### Run Ticket Creation Manually
 
-To run the ticket creation script manually, you must provide the following environment variables:
-
-- `ZAMMAD_URL`
-- `ZAMMAD_TOKEN`
-
-Then run:
+Run:
 
 ```bash
 python zammad_create_ticket.py --config config.yaml
 ```
-
----
-
-Note: `schedule.yaml` is the scheduler config (jobs + cron).  
-`config.yaml` is the direct ticket config format used by `zammad_create_ticket.py`.
 
 ---
 
