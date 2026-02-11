@@ -144,6 +144,8 @@ docker compose logs -f
 
 ---
 
+### Run the Script(s) Manually
+
 To run the scheduler or ticket creation script manually, you must provide the following environment variables:
 
 - `ZAMMAD_URL`
@@ -151,8 +153,6 @@ To run the scheduler or ticket creation script manually, you must provide the fo
 
 Note: `schedule.yaml` is the scheduler config (jobs + cron).  
 `config.yaml` is the direct ticket config format used by `zammad_create_ticket.py`.
-
----
 
 ### Run the Scheduler
 
