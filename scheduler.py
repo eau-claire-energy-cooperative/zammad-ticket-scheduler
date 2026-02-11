@@ -38,7 +38,7 @@ SHOULD_EXIT = False
 
 
 def handle_shutdown_signal(signum, frame) -> None:
-    """Signal handler for Ctrl+C (SIGINT) and SIGTERM (Docker/Kubernetes)."""
+    """Signal handler for Ctrl+C (SIGINT) and SIGTERM (Docker)."""
     global SHOULD_EXIT
     SHOULD_EXIT = True
 
