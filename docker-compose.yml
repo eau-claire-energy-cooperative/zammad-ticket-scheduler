@@ -1,0 +1,13 @@
+services:
+  zammad_scheduler:
+    build: .
+    container_name: zammad_scheduler
+    restart: unless-stopped
+    environment:
+      - ZAMMAD_URL=${ZAMMAD_URL}
+      - ZAMMAD_TOKEN=${ZAMMAD_TOKEN}
+      - SCHEDULER_LOG_TO_FILE=${SCHEDULER_LOG_TO_FILE}
+    volumes:
+      - ./schedule.yaml:/config/schedule.yaml:ro
+      - ./tmp:/app/tmp
+    command: ["python", "scheduler.py", "--schedule", "/config/schedule.yaml"]
