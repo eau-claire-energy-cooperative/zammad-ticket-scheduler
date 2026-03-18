@@ -32,3 +32,14 @@ jobs:
             This ticket overrides the default group and sets internal to true.
           internal: true
           type: "email"
+
+  - name: "Ticket with checklist"
+    cron: "0 9 30 * *"
+    tickets:
+      - title: "Checklist Ticket"
+        customer: "customer@example.com"
+        article:
+          subject: "Daily Ticket"
+          body: |
+            This ticket uses the default group and default article settings.
+        checklist_template_id: 3

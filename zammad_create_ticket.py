@@ -178,6 +178,14 @@ def resolve_owner_id(base: str, token: str, owner_query: str, timeout: int) -> i
         lines.append(f"id={u.get('id')} email={u.get('email')} login={u.get('login') or u.get('username')}")
     raise RuntimeError("Owner query ambiguous; matches:\n  - " + "\n  - ".join(lines))
 
+def attach_checklist(base: str, token: str, ticket_id: int, template_id: int, timeout: int):
+    """Attach a checklist template to a ticket."""
+    url = f"{base}/api/v1/checklists"
+    payload = {
+        "ticket_id": ticket_id,
+        "template_id": template_id,
+    }
+    return http_json("POST", url, token, payload=payload, timeout=timeout)
 
 def merge_ticket(defaults: dict, ticket: dict) -> dict:
     """
@@ -198,10 +206,10 @@ def merge_ticket(defaults: dict, ticket: dict) -> dict:
     return merged
 
 
-def build_payload(merged: dict, ctx: str) -> tuple[dict, str, int]:
+def build_payload(merged: dict, ctx: str) -> tuple[dict, str, int, int]:
     """
     Build the ticket payload with only essential validation.
-    Returns: (payload, owner_string, owner_id)
+    Returns: (payload, owner_string, owner_id, checklist_template_id)
     """
     title = str(merged.get("title", "")).strip()
     customer = str(merged.get("customer", "")).strip()
@@ -237,6 +245,19 @@ def build_payload(merged: dict, ctx: str) -> tuple[dict, str, int]:
 
     if owner and owner_id:
         raise ValueError(f"{ctx}: use either owner OR owner_id, not both")
+        
+    checklist_template_id = merged.get("checklist_template_id") or 0
+    if isinstance(checklist_template_id, str):
+        checklist_template_id = checklist_template_id.strip()
+
+    if checklist_template_id in ("", None, 0, "0"):
+        checklist_template_id = 0
+    elif isinstance(checklist_template_id, int):
+        pass
+    elif isinstance(checklist_template_id, str) and checklist_template_id.isdigit():
+        checklist_template_id = int(checklist_template_id)
+    else:
+        raise ValueError(f"{ctx}: checklist_template_id must be an integer if provided")
 
     payload = {
         "title": title,
@@ -250,7 +271,7 @@ def build_payload(merged: dict, ctx: str) -> tuple[dict, str, int]:
         },
     }
 
-    return payload, owner, owner_id
+    return payload, owner, owner_id, checklist_template_id
 
 
 def main(argv: list[str]) -> int:
@@ -295,7 +316,7 @@ def main(argv: list[str]) -> int:
         merged = merge_ticket(defaults, t)
 
         try:
-            payload, owner, owner_id = build_payload(merged, ctx)
+            payload, owner, owner_id, checklist_template_id = build_payload(merged, ctx)
         except Exception as e:
             logger.error(f"{ctx}: invalid ticket: {e}")
             any_failed = True
@@ -320,19 +341,34 @@ def main(argv: list[str]) -> int:
         # Create the ticket
         try:
             status, resp = http_json("POST", create_url, token, payload=payload, timeout=timeout)
-
-            # Short success log to the console
             ticket_id = resp.get("id") if isinstance(resp, dict) else None
             logger.info(f"{ctx}: created (HTTP {status}) ticket_id={ticket_id}")
-
-
         except ConnectionError as e:
             logger.error(f"{ctx}: network error creating ticket: {e}")
             any_failed = True
             any_network_error = True
+            continue
         except RuntimeError as e:
             logger.error(f"{ctx}: API error creating ticket: {e}")
             any_failed = True
+            continue
+
+        if checklist_template_id and ticket_id:
+            try:
+                c_status, _ = attach_checklist(
+                    base, token, int(ticket_id), checklist_template_id, timeout
+                )
+                logger.info(
+                    f"{ctx}: attached checklist template_id={checklist_template_id} "
+                    f"to ticket_id={ticket_id} (HTTP {c_status})"
+                )
+            except ConnectionError as e:
+                logger.error(f"{ctx}: network error attaching checklist: {e}")
+                any_failed = True
+                any_network_error = True
+            except RuntimeError as e:
+                logger.error(f"{ctx}: API error attaching checklist: {e}")
+                any_failed = True
 
     if any_network_error:
         return 5

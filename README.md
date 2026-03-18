@@ -25,7 +25,7 @@ This project is designed for Docker use (logs to stdout, supports clean shutdown
 
 ### Requirements
 
-- Python 3.10+
+- Python 3.9+
 - Zammad API token
 - Zammad instance URL
 
@@ -34,10 +34,6 @@ This project is designed for Docker use (logs to stdout, supports clean shutdown
 ```bash
 pip install pyyaml croniter
 ```
-
-### Get the Code
-
-Clone this repository (or download it as a ZIP) onto the machine where you want it to run.
 
 ### Copy Sample Config Files
 
@@ -114,6 +110,7 @@ Each ticket supports:
 | `owner` | string | ❌ |
 | `owner_id` | int | ❌ |
 | `article` | mapping | ✅ |
+| `checklist_template_id` | int | ❌ |
 
 > Do not set both `owner` and `owner_id`.
 
