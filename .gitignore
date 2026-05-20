@@ -1,5 +1,5 @@
 # project specific
-schedule.yaml
+./config/schedule.yaml
 tmp/
 
 # Project Specific
