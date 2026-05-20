@@ -69,10 +69,6 @@ function blankTicket() {
     group: "",
     owner: "",
     owner_id: "",
-    state: "",
-    state_id: "",
-    priority: "",
-    priority_id: "",
     checklist_template_id: "",
     article: {
       subject: "",
@@ -131,10 +127,6 @@ function renderDefaults() {
 		${fieldHtml("Default Group", "defaults.group", schedule.defaults.group || "", "Users", "text", "medium")}
 		${fieldHtml("Default Owner", "defaults.owner", schedule.defaults.owner || "", "Owner login/email", "text", "medium")}
 		${fieldHtml("Default Owner ID", "defaults.owner_id", schedule.defaults.owner_id || "", "123", "number", "small")}
-		${fieldHtml("Default State", "defaults.state", schedule.defaults.state || "", "new", "text", "medium")}
-		${fieldHtml("Default State ID", "defaults.state_id", schedule.defaults.state_id || "", "1", "number", "small")}
-		${fieldHtml("Default Priority", "defaults.priority", schedule.defaults.priority || "", "2 normal", "text", "medium")}
-		${fieldHtml("Default Priority ID", "defaults.priority_id", schedule.defaults.priority_id || "", "2", "number", "small")}
 		${fieldHtml("Default Checklist Template ID", "defaults.checklist_template_id", schedule.defaults.checklist_template_id || "", "123", "number", "small")}
 		${fieldHtml("Default Article Type", "defaults.article.type", schedule.defaults.article.type || "note", "note", "text", "small")}
 		${fieldHtml("Default Subject", "defaults.article.subject", schedule.defaults.article.subject || "", "Article subject", "text", "large")}
@@ -240,10 +232,6 @@ function ticketCardHtml(jobIndex, ticketIndex, ticket) {
 		${fieldHtml("Group", `jobs.${jobIndex}.tickets.${ticketIndex}.group`, ticket.group || "", fallbackText("group"), "text", "medium")}
 		${fieldHtml("Owner", `jobs.${jobIndex}.tickets.${ticketIndex}.owner`, ticket.owner || "", fallbackText("owner"), "text", "medium")}
 		${fieldHtml("Owner ID", `jobs.${jobIndex}.tickets.${ticketIndex}.owner_id`, ticket.owner_id || "", fallbackText("owner_id"), "number", "small")}
-		${fieldHtml("State", `jobs.${jobIndex}.tickets.${ticketIndex}.state`, ticket.state || "", fallbackText("state"), "text", "medium")}
-		${fieldHtml("State ID", `jobs.${jobIndex}.tickets.${ticketIndex}.state_id`, ticket.state_id || "", fallbackText("state_id"), "number", "small")}
-		${fieldHtml("Priority", `jobs.${jobIndex}.tickets.${ticketIndex}.priority`, ticket.priority || "", fallbackText("priority"), "text", "medium")}
-		${fieldHtml("Priority ID", `jobs.${jobIndex}.tickets.${ticketIndex}.priority_id`, ticket.priority_id || "", fallbackText("priority_id"), "number", "small")}
 		${fieldHtml("Checklist Template ID", `jobs.${jobIndex}.tickets.${ticketIndex}.checklist_template_id`, ticket.checklist_template_id || "", fallbackText("checklist_template_id"), "number", "small")}
 		${fieldHtml("Article Type", `jobs.${jobIndex}.tickets.${ticketIndex}.article.type`, ticket.article.type || "", fallbackArticleText("type"), "text", "small")}
 		${fieldHtml("Subject", `jobs.${jobIndex}.tickets.${ticketIndex}.article.subject`, ticket.article.subject || "", fallbackArticleText("subject"), "text", "large")}
@@ -387,13 +375,6 @@ function validateLocal() {
         errors.push(`${ticketLabel}: use owner OR owner_id, not both.`);
       }
 
-      if (ticket.state && ticket.state_id) {
-        errors.push(`${ticketLabel}: use state OR state_id, not both.`);
-      }
-
-      if (ticket.priority && ticket.priority_id) {
-        errors.push(`${ticketLabel}: use priority OR priority_id, not both.`);
-      }
     });
   });
 
@@ -450,8 +431,6 @@ function cleanSchedule() {
       cleanObject(ticket.article);
 
       numberOrDelete(ticket, "owner_id");
-      numberOrDelete(ticket, "state_id");
-      numberOrDelete(ticket, "priority_id");
       numberOrDelete(ticket, "checklist_template_id");
 
       if (ticket.article.internal !== true) {
@@ -461,8 +440,6 @@ function cleanSchedule() {
   });
 
   numberOrDelete(schedule.defaults, "owner_id");
-  numberOrDelete(schedule.defaults, "state_id");
-  numberOrDelete(schedule.defaults, "priority_id");
   numberOrDelete(schedule.defaults, "checklist_template_id");
 
   if (!schedule.defaults.article) schedule.defaults.article = {};
