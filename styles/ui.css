@@ -23,14 +23,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 .page {
@@ -61,7 +54,6 @@ body {
 .app-header h1 {
   margin: 0;
   font-size: 30px;
-  line-height: 1.15;
 }
 
 .app-header p,
@@ -72,22 +64,22 @@ body {
   color: var(--muted);
 }
 
-.actions,
-.subheader {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .panel {
   padding: 24px;
   margin-bottom: 22px;
 }
 
-.section-header {
+.section-header,
+.job-header,
+.subheader,
+.actions {
   display: flex;
   justify-content: space-between;
-  gap: 18px;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-header {
   margin-bottom: 20px;
 }
 
@@ -127,33 +119,48 @@ body {
 }
 
 .job-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
   margin-bottom: 20px;
 }
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  grid-template-columns: repeat(12, 1fr);
   gap: 16px;
+  align-items: start;
 }
 
 .job-settings {
-  grid-template-columns: minmax(300px, 1fr) 260px;
   margin-bottom: 24px;
 }
 
-.ticket-grid {
-  grid-template-columns: repeat(4, minmax(220px, 1fr));
+.field {
+  grid-column: span 3;
+  min-width: 0;
 }
 
-.field {
-  min-width: 0;
+.field.medium {
+  grid-column: span 4;
+}
+
+.field.large {
+  grid-column: span 6;
 }
 
 .field.wide {
   grid-column: 1 / -1;
+}
+
+.field.small {
+  grid-column: span 2;
+}
+
+.checkbox-field {
+  grid-column: span 2;
+  align-self: end;
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 label {
@@ -172,14 +179,14 @@ select {
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 12px 13px;
+  padding: 11px 12px;
   font: inherit;
   background: #ffffff;
   color: var(--text);
 }
 
 textarea {
-  min-height: 180px;
+  min-height: 145px;
   resize: vertical;
   line-height: 1.45;
 }
@@ -194,12 +201,6 @@ select:focus {
 input::placeholder,
 textarea::placeholder {
   color: #98a2b3;
-}
-
-.checkbox-field {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
 }
 
 .checkbox-field input {
@@ -241,7 +242,6 @@ button.small {
 }
 
 .subheader {
-  justify-content: space-between;
   margin: 18px 0 12px;
 }
 
@@ -286,6 +286,10 @@ button.small {
   content: "▸";
 }
 
+.ticket-card:not([open]) .form-grid {
+  display: none;
+}
+
 .ticket-card .form-grid {
   padding: 18px;
 }
@@ -307,31 +311,37 @@ button.small {
 }
 
 @media (max-width: 1100px) {
-  .form-grid,
-  .ticket-grid {
-    grid-template-columns: repeat(2, minmax(220px, 1fr));
+  .field,
+  .field.medium,
+  .field.large {
+    grid-column: span 6;
   }
 
-  .job-settings {
-    grid-template-columns: 1fr;
+  .field.small,
+  .checkbox-field {
+    grid-column: span 3;
+  }
+
+  .field.wide {
+    grid-column: 1 / -1;
   }
 }
 
 @media (max-width: 720px) {
   .app-header,
   .job-header,
-  .subheader {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .form-grid,
-  .ticket-grid {
-    grid-template-columns: 1fr;
-  }
-
+  .subheader,
   .actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .field,
+  .field.medium,
+  .field.large,
+  .field.small,
+  .checkbox-field,
+  .field.wide {
+    grid-column: 1 / -1;
   }
 }

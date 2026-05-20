@@ -126,17 +126,18 @@ function renderDefaults() {
 
   root.innerHTML = `
     <div class="form-grid">
-      ${fieldHtml("Default Title", "defaults.title", schedule.defaults.title || "", "Ticket title")}
-      ${fieldHtml("Default Customer", "defaults.customer", schedule.defaults.customer || "", "customer@example.com")}
-      ${fieldHtml("Default Group", "defaults.group", schedule.defaults.group || "", "Users")}
-      ${fieldHtml("Default Owner", "defaults.owner", schedule.defaults.owner || "", "Owner login/email")}
-      ${fieldHtml("Default Owner ID", "defaults.owner_id", schedule.defaults.owner_id || "", "123", "number")}
-      ${fieldHtml("Default State", "defaults.state", schedule.defaults.state || "", "new")}
-      ${fieldHtml("Default State ID", "defaults.state_id", schedule.defaults.state_id || "", "1", "number")}
-      ${fieldHtml("Default Priority", "defaults.priority", schedule.defaults.priority || "", "2 normal")}
-      ${fieldHtml("Default Priority ID", "defaults.priority_id", schedule.defaults.priority_id || "", "2", "number")}
-      ${fieldHtml("Default Checklist Template ID", "defaults.checklist_template_id", schedule.defaults.checklist_template_id || "", "123", "number")}
-      ${fieldHtml("Default Article Type", "defaults.article.type", schedule.defaults.article.type || "note", "note")}
+		${fieldHtml("Default Title", "defaults.title", schedule.defaults.title || "", "Ticket title", "text", "large")}
+		${fieldHtml("Default Customer", "defaults.customer", schedule.defaults.customer || "", "customer@example.com", "text", "medium")}
+		${fieldHtml("Default Group", "defaults.group", schedule.defaults.group || "", "Users", "text", "medium")}
+		${fieldHtml("Default Owner", "defaults.owner", schedule.defaults.owner || "", "Owner login/email", "text", "medium")}
+		${fieldHtml("Default Owner ID", "defaults.owner_id", schedule.defaults.owner_id || "", "123", "number", "small")}
+		${fieldHtml("Default State", "defaults.state", schedule.defaults.state || "", "new", "text", "medium")}
+		${fieldHtml("Default State ID", "defaults.state_id", schedule.defaults.state_id || "", "1", "number", "small")}
+		${fieldHtml("Default Priority", "defaults.priority", schedule.defaults.priority || "", "2 normal", "text", "medium")}
+		${fieldHtml("Default Priority ID", "defaults.priority_id", schedule.defaults.priority_id || "", "2", "number", "small")}
+		${fieldHtml("Default Checklist Template ID", "defaults.checklist_template_id", schedule.defaults.checklist_template_id || "", "123", "number", "small")}
+		${fieldHtml("Default Article Type", "defaults.article.type", schedule.defaults.article.type || "note", "note", "text", "small")}
+		${fieldHtml("Default Subject", "defaults.article.subject", schedule.defaults.article.subject || "", "Article subject", "text", "large")}
       
       <div class="field checkbox-field">
         <label>Default Internal Article</label>
@@ -234,17 +235,18 @@ function ticketCardHtml(jobIndex, ticketIndex, ticket) {
       </summary>
 
       <div class="form-grid ticket-grid">
-        ${fieldHtml("Title", `jobs.${jobIndex}.tickets.${ticketIndex}.title`, ticket.title || "", fallbackText("title"))}
-        ${fieldHtml("Customer", `jobs.${jobIndex}.tickets.${ticketIndex}.customer`, ticket.customer || "", fallbackText("customer"))}
-        ${fieldHtml("Group", `jobs.${jobIndex}.tickets.${ticketIndex}.group`, ticket.group || "", fallbackText("group"))}
-        ${fieldHtml("Owner", `jobs.${jobIndex}.tickets.${ticketIndex}.owner`, ticket.owner || "", fallbackText("owner"))}
-        ${fieldHtml("Owner ID", `jobs.${jobIndex}.tickets.${ticketIndex}.owner_id`, ticket.owner_id || "", fallbackText("owner_id"), "number")}
-        ${fieldHtml("State", `jobs.${jobIndex}.tickets.${ticketIndex}.state`, ticket.state || "", fallbackText("state"))}
-        ${fieldHtml("State ID", `jobs.${jobIndex}.tickets.${ticketIndex}.state_id`, ticket.state_id || "", fallbackText("state_id"), "number")}
-        ${fieldHtml("Priority", `jobs.${jobIndex}.tickets.${ticketIndex}.priority`, ticket.priority || "", fallbackText("priority"))}
-        ${fieldHtml("Priority ID", `jobs.${jobIndex}.tickets.${ticketIndex}.priority_id`, ticket.priority_id || "", fallbackText("priority_id"), "number")}
-        ${fieldHtml("Checklist Template ID", `jobs.${jobIndex}.tickets.${ticketIndex}.checklist_template_id`, ticket.checklist_template_id || "", fallbackText("checklist_template_id"), "number")}
-        ${fieldHtml("Article Type", `jobs.${jobIndex}.tickets.${ticketIndex}.article.type`, ticket.article.type || "", fallbackArticleText("type"))}
+        ${fieldHtml("Title", `jobs.${jobIndex}.tickets.${ticketIndex}.title`, ticket.title || "", fallbackText("title"), "text", "large")}
+		${fieldHtml("Customer", `jobs.${jobIndex}.tickets.${ticketIndex}.customer`, ticket.customer || "", fallbackText("customer"), "text", "medium")}
+		${fieldHtml("Group", `jobs.${jobIndex}.tickets.${ticketIndex}.group`, ticket.group || "", fallbackText("group"), "text", "medium")}
+		${fieldHtml("Owner", `jobs.${jobIndex}.tickets.${ticketIndex}.owner`, ticket.owner || "", fallbackText("owner"), "text", "medium")}
+		${fieldHtml("Owner ID", `jobs.${jobIndex}.tickets.${ticketIndex}.owner_id`, ticket.owner_id || "", fallbackText("owner_id"), "number", "small")}
+		${fieldHtml("State", `jobs.${jobIndex}.tickets.${ticketIndex}.state`, ticket.state || "", fallbackText("state"), "text", "medium")}
+		${fieldHtml("State ID", `jobs.${jobIndex}.tickets.${ticketIndex}.state_id`, ticket.state_id || "", fallbackText("state_id"), "number", "small")}
+		${fieldHtml("Priority", `jobs.${jobIndex}.tickets.${ticketIndex}.priority`, ticket.priority || "", fallbackText("priority"), "text", "medium")}
+		${fieldHtml("Priority ID", `jobs.${jobIndex}.tickets.${ticketIndex}.priority_id`, ticket.priority_id || "", fallbackText("priority_id"), "number", "small")}
+		${fieldHtml("Checklist Template ID", `jobs.${jobIndex}.tickets.${ticketIndex}.checklist_template_id`, ticket.checklist_template_id || "", fallbackText("checklist_template_id"), "number", "small")}
+		${fieldHtml("Article Type", `jobs.${jobIndex}.tickets.${ticketIndex}.article.type`, ticket.article.type || "", fallbackArticleText("type"), "text", "small")}
+		${fieldHtml("Subject", `jobs.${jobIndex}.tickets.${ticketIndex}.article.subject`, ticket.article.subject || "", fallbackArticleText("subject"), "text", "large")}
 
         <div class="field checkbox-field">
           <label>Internal Article</label>
@@ -255,7 +257,7 @@ function ticketCardHtml(jobIndex, ticketIndex, ticket) {
           >
         </div>
 
-        ${fieldHtml("Subject", `jobs.${jobIndex}.tickets.${ticketIndex}.article.subject`, ticket.article.subject || "", fallbackArticleText("subject"))}
+        ${fieldHtml("Subject", `jobs.${jobIndex}.tickets.${ticketIndex}.article.subject`, ticket.article.subject || "", fallbackArticleText("subject"), "text", "large")}
 
         <div class="field wide">
           <label>Body</label>
@@ -269,9 +271,9 @@ function ticketCardHtml(jobIndex, ticketIndex, ticket) {
   `;
 }
 
-function fieldHtml(label, path, value, placeholder = "", type = "text") {
+function fieldHtml(label, path, value, placeholder = "", type = "text", size = "") {
   return `
-    <div class="field">
+    <div class="field ${size}">
       <label>${escapeHtml(label)}</label>
       <input
         type="${type}"
