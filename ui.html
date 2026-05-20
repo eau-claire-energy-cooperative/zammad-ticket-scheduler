@@ -139,8 +139,6 @@ function renderDefaults() {
           onchange="setPath('defaults.article.internal', this.checked)"
         >
       </div>
-
-      ${fieldHtml("Default Subject", "defaults.article.subject", schedule.defaults.article.subject || "", "Article subject")}
       
       <div class="field wide">
         <label>Default Body</label>
@@ -244,8 +242,6 @@ function ticketCardHtml(jobIndex, ticketIndex, ticket) {
             onchange="setPath('jobs.${jobIndex}.tickets.${ticketIndex}.article.internal', this.checked)"
           >
         </div>
-
-        ${fieldHtml("Subject", `jobs.${jobIndex}.tickets.${ticketIndex}.article.subject`, ticket.article.subject || "", fallbackArticleText("subject"), "text", "large")}
 
         <div class="field wide">
           <label>Body</label>
