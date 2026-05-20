@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zammad Scheduler UI</title>
+  <link rel="stylesheet" href="/styles/ui.css">
+</head>
+
+<body>
+  <main class="page">
+    <header class="header">
+      <div>
+        <h1>Zammad Ticket Scheduler</h1>
+        <p>Create, edit, and save scheduled Zammad tickets.</p>
+      </div>
+
+      <div class="actions">
+        <button class="secondary" onclick="addJob()">Add Job</button>
+        <button class="primary" onclick="saveSchedule()">Save Schedule</button>
+      </div>
+    </header>
+
+    <p id="status" class="status"></p>
+    <div id="jobs"></div>
+  </main>
+
+<script>
+let schedule = {
+  zammad: { timeout: 30 },
+  defaults: {
+    group: "Users",
+    article: {
+      type: "note",
+      internal: false
+    }
+  },
+  jobs: []
+};
+
+function blankJob() {
+  return {
+    name: "",
+    cron: "",
+    tickets: [blankTicket()]
+  };
+}
+
+function blankTicket() {
+  return {
+    title: "",
+    customer: "",
+    group: "",
+    owner: "",
+    owner_id: "",
+    checklist_template_id: "",
+    article: {
+      subject: "",
+      body: "",
+      type: "note",
+      internal: false
+    }
+  };
+}
+
+async function loadSchedule() {
+  const res = await fetch("/api/schedule");
+  schedule = await res.json();
+
+  if (!schedule.zammad) schedule.zammad = { timeout: 30 };
+  if (!schedule.defaults) {
+    schedule.defaults = {
+      group: "Users",
+      article: { type: "note", internal: false }
+    };
+  }
+
+  if (!Array.isArray(schedule.jobs)) schedule.jobs = [];
+
+  schedule.jobs.forEach(job => {
+    if (!Array.isArray(job.tickets)) job.tickets = [];
+    job.tickets.forEach(ticket => {
+      if (!ticket.article) {
+        ticket.article = {
+          subject: "",
+          body: "",
+          type: "note",
+          internal: false
+        };
+      }
+    });
+  });
+
+  render();
+}
+
+function render() {
+  const root = document.getElementById("jobs");
+  root.innerHTML = "";
+
+  if (!schedule.jobs.length) {
+    root.innerHTML = `
+      <section class="empty">
+        <h2>No jobs yet</h2>
+        <p>Add your first scheduled ticket job to get started.</p>
+        <button class="primary" onclick="addJob()">Add Job</button>
+      </section>
+    `;
+    return;
+  }
+
+  schedule.jobs.forEach((job, jobIndex) => {
+    const div = document.createElement("section");
+    div.className = "job";
+
+    div.innerHTML = `
+      <div class="job-header">
+        <div>
+          <h2>Job ${jobIndex + 1}</h2>
+          <p>Configure when this job runs and which tickets it creates.</p>
+        </div>
+
+        <button class="danger small" onclick="deleteJob(${jobIndex})">
+          Delete Job
+        </button>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label>Name</label>
+          <input
+            value="${escapeHtml(job.name || "")}"
+            placeholder="Optional display name"
+            onchange="schedule.jobs[${jobIndex}].name=this.value"
+          >
+        </div>
+
+        <div>
+          <label>Cron *</label>
+          <input
+            required
+            value="${escapeHtml(job.cron || "")}"
+            placeholder="0 8 * * 1"
+            onchange="schedule.jobs[${jobIndex}].cron=this.value"
+          >
+        </div>
+      </div>
+
+      <div class="subheader">
+        <h3>Tickets</h3>
+        <button class="secondary small" onclick="addTicket(${jobIndex})">
+          Add Ticket
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Title *</th>
+              <th>Customer *</th>
+              <th>Group *</th>
+              <th>Owner</th>
+              <th>Owner ID</th>
+              <th>Subject *</th>
+              <th>Body *</th>
+              <th>Article Type</th>
+              <th>Internal</th>
+              <th></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            ${(job.tickets || []).map((ticket, ticketIndex) => `
+              <tr>
+                <td>
+                  <input
+                    value="${escapeHtml(ticket.title || "")}"
+                    onchange="schedule.jobs[${jobIndex}].tickets[${ticketIndex}].title=this.value"
+                  >
+                </td>
+
+                <td>
+                  <input
+                    value="${escapeHtml(ticket.customer || "")}"
+                    placeholder="customer@example.com"
+                    onchange="schedule.jobs[${jobIndex}].tickets[${ticketIndex}].customer=this.value"
+                  >
+                </td>
+
+                <td>
+                  <input
+                    value="${escapeHtml(ticket.group || "")}"
+                    onchange="schedule.jobs[${jobIndex}].tickets[${ticketIndex}].group=this.value"
+                  >
+                </td>
+
+                <td>
+                  <input
+                    value="${escapeHtml(ticket.owner || "")}"
+                    onchange="schedule.jobs[${jobIndex}].tickets[${ticketIndex}].owner=this.value"
+                  >
+                </td>
+
+                <td>
+                  <input
+                    type="number"
+                    value="${escapeHtml(ticket.owner_id || "")}"
+                    onchange="schedule.jobs[${jobIndex}].tickets[${ticketIndex}].owner_id=this.value"
+                  >
+                </td>
+
+                <td>
+                  <input
+                    value="${escapeHtml(ticket.article?.subject || "")}"
+                    onchange="schedule.jobs[${jobIndex}].tickets[${ticketIndex}].article.subject=this.value"
+                  >
+                </td>
+
+                <td>
+                  <textarea
+                    onchange="schedule.jobs[${jobIndex}].tickets[${ticketIndex}].article.body=this.value"
+                  >${escapeHtml(ticket.article?.body || "")}</textarea>
+                </td>
+
+                <td>
+                  <input
+                    value="${escapeHtml(ticket.article?.type || "note")}"
+                    onchange="schedule.jobs[${jobIndex}].tickets[${ticketIndex}].article.type=this.value"
+                  >
+                </td>
+
+                <td class="center">
+                  <input
+                    type="checkbox"
+                    ${ticket.article?.internal ? "checked" : ""}
+                    onchange="schedule.jobs[${jobIndex}].tickets[${ticketIndex}].article.internal=this.checked"
+                  >
+                </td>
+
+                <td>
+                  <button class="danger small" onclick="deleteTicket(${jobIndex}, ${ticketIndex})">
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    root.appendChild(div);
+  });
+}
+
+function addJob() {
+  schedule.jobs.push(blankJob());
+  render();
+}
+
+function deleteJob(index) {
+  schedule.jobs.splice(index, 1);
+  render();
+}
+
+function addTicket(jobIndex) {
+  if (!schedule.jobs[jobIndex].tickets) {
+    schedule.jobs[jobIndex].tickets = [];
+  }
+
+  schedule.jobs[jobIndex].tickets.push(blankTicket());
+  render();
+}
+
+function deleteTicket(jobIndex, ticketIndex) {
+  schedule.jobs[jobIndex].tickets.splice(ticketIndex, 1);
+  render();
+}
+
+function validateLocal() {
+  const errors = [];
+
+  if (!Array.isArray(schedule.jobs)) {
+    errors.push("jobs is required and must be a list.");
+    return errors;
+  }
+
+  schedule.jobs.forEach((job, jobIndex) => {
+    const jobLabel = `Job ${jobIndex + 1}`;
+
+    if (!job.cron) {
+      errors.push(`${jobLabel}: cron is required.`);
+    }
+
+    if (!Array.isArray(job.tickets)) {
+      errors.push(`${jobLabel}: tickets must be a list.`);
+      return;
+    }
+
+    job.tickets.forEach((ticket, ticketIndex) => {
+      const ticketLabel = `${jobLabel}, Ticket ${ticketIndex + 1}`;
+
+      if (!ticket.title) errors.push(`${ticketLabel}: title is required.`);
+      if (!ticket.customer) errors.push(`${ticketLabel}: customer is required.`);
+      if (!ticket.group) errors.push(`${ticketLabel}: group is required.`);
+
+      if (!ticket.article) ticket.article = {};
+
+      if (!ticket.article.subject) {
+        errors.push(`${ticketLabel}: article subject is required.`);
+      }
+
+      if (!ticket.article.body) {
+        errors.push(`${ticketLabel}: article body is required.`);
+      }
+
+      if (ticket.owner && ticket.owner_id) {
+        errors.push(`${ticketLabel}: use owner OR owner_id, not both.`);
+      }
+    });
+  });
+
+  return errors;
+}
+
+async function saveSchedule() {
+  const status = document.getElementById("status");
+  status.className = "status";
+  status.textContent = "";
+
+  const localErrors = validateLocal();
+
+  if (localErrors.length) {
+    status.className = "status err";
+    status.textContent = localErrors.join("\n");
+    return;
+  }
+
+  cleanSchedule();
+
+  const res = await fetch("/api/schedule", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ schedule })
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    status.className = "status err";
+    status.textContent = Array.isArray(data.detail)
+      ? data.detail.join("\n")
+      : JSON.stringify(data.detail, null, 2);
+    return;
+  }
+
+  status.className = "status ok";
+  status.textContent = "Saved schedule.yaml.";
+}
+
+function cleanSchedule() {
+  schedule.jobs.forEach(job => {
+    if (!job.name) delete job.name;
+
+    job.tickets = job.tickets || [];
+
+    job.tickets.forEach(ticket => {
+      if (!ticket.article) ticket.article = {};
+
+      if (!ticket.owner) delete ticket.owner;
+
+      if (!ticket.owner_id) {
+        delete ticket.owner_id;
+      } else {
+        ticket.owner_id = Number(ticket.owner_id);
+      }
+
+      if (!ticket.checklist_template_id) {
+        delete ticket.checklist_template_id;
+      } else {
+        ticket.checklist_template_id = Number(ticket.checklist_template_id);
+      }
+
+      if (!ticket.article.type) {
+        delete ticket.article.type;
+      }
+
+      if (ticket.article.internal !== true) {
+        ticket.article.internal = false;
+      }
+    });
+  });
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+loadSchedule();
+</script>
+</body>
+</html>

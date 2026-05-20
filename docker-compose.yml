@@ -8,6 +8,26 @@ services:
       - ZAMMAD_TOKEN=${ZAMMAD_TOKEN}
       - SCHEDULER_LOG_TO_FILE=${SCHEDULER_LOG_TO_FILE}
     volumes:
-      - ./schedule.yaml:/config/schedule.yaml:ro
+      - ./config:/config
       - ./tmp:/app/tmp
-    command: ["python", "scheduler.py", "--schedule", "/config/schedule.yaml"]
+    command: >
+      sh -c '
+        mkdir -p /config &&
+        test -f /config/schedule.yaml || printf "zammad:\n  timeout: 30\ndefaults:\n  group: Users\n  article:\n    type: note\n    internal: false\njobs: []\n" > /config/schedule.yaml &&
+        python scheduler.py --schedule /config/schedule.yaml
+      '
+
+  zammad_scheduler_ui:
+    build: .
+    container_name: zammad_scheduler_ui
+    restart: unless-stopped
+    volumes:
+      - ./config:/config
+    ports:
+      - "18743:8080"
+    command: >
+      sh -c '
+        mkdir -p /config &&
+        test -f /config/schedule.yaml || printf "zammad:\n  timeout: 30\ndefaults:\n  group: Users\n  article:\n    type: note\n    internal: false\njobs: []\n" > /config/schedule.yaml &&
+        uvicorn ui:app --host 0.0.0.0 --port 8080
+      '
