@@ -57,6 +57,17 @@ def save_schedule(data: dict):
         yaml.safe_dump(data, f, sort_keys=False)
 
 
+def get_default(data: dict, field: str):
+    defaults = data.get("defaults") or {}
+    return defaults.get(field)
+
+
+def get_default_article(data: dict, field: str):
+    defaults = data.get("defaults") or {}
+    article = defaults.get("article") or {}
+    return article.get(field)
+
+
 def validate_schedule(data: dict):
     errors = []
 
@@ -72,6 +83,12 @@ def validate_schedule(data: dict):
     if not isinstance(jobs, list):
         errors.append("jobs must be a list.")
         return errors
+
+    default_title = get_default(data, "title")
+    default_customer = get_default(data, "customer")
+    default_group = get_default(data, "group")
+    default_subject = get_default_article(data, "subject")
+    default_body = get_default_article(data, "body")
 
     for job_index, job in enumerate(jobs):
         job_label = f"Job {job_index + 1}"
@@ -103,22 +120,31 @@ def validate_schedule(data: dict):
                 errors.append(f"{ticket_label}: must be an object.")
                 continue
 
-            for field in ["title", "customer", "group"]:
-                if not ticket.get(field):
-                    errors.append(f"{ticket_label}: {field} is required.")
+            article = ticket.get("article") or {}
+
+            if not ticket.get("title") and not default_title:
+                errors.append(f"{ticket_label}: title is required unless set in defaults.")
+
+            if not ticket.get("customer") and not default_customer:
+                errors.append(f"{ticket_label}: customer is required unless set in defaults.")
+
+            if not ticket.get("group") and not default_group:
+                errors.append(f"{ticket_label}: group is required unless set in defaults.")
 
             if ticket.get("owner") and ticket.get("owner_id"):
                 errors.append(f"{ticket_label}: use owner OR owner_id, not both.")
 
-            article = ticket.get("article")
+            if ticket.get("state") and ticket.get("state_id"):
+                errors.append(f"{ticket_label}: use state OR state_id, not both.")
 
-            if not isinstance(article, dict):
-                errors.append(f"{ticket_label}: article is required.")
-                continue
+            if ticket.get("priority") and ticket.get("priority_id"):
+                errors.append(f"{ticket_label}: use priority OR priority_id, not both.")
 
-            for field in ["subject", "body"]:
-                if not article.get(field):
-                    errors.append(f"{ticket_label}: article.{field} is required.")
+            if not article.get("subject") and not default_subject:
+                errors.append(f"{ticket_label}: article.subject is required unless set in defaults.")
+
+            if not article.get("body") and not default_body:
+                errors.append(f"{ticket_label}: article.body is required unless set in defaults.")
 
     return errors
 
