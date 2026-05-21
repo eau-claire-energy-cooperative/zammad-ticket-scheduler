@@ -57,17 +57,13 @@ In the newest update there is a UI that is hosted that allows the user to update
 
 ### Screenshots
 <img width="1530" height="717" alt="Defaults Section" src="https://github.com/user-attachments/assets/cae0cdda-9c9e-4f99-a7c9-d3e0574a40cb" />
-Defaults of anything (besides timeout) can be set at the top of the screen. On initial startup, the only defaults that are created are the group (Users), article type (note), and internal article (false). 
-
-
+<p>Defaults of anything (besides timeout) can be set at the top of the screen. On initial startup, the only defaults that are created are the group (Users), article type (note), and internal article (false). </p>
+<br>
 <img width="1512" height="340" alt="No Jobs Yet" src="https://github.com/user-attachments/assets/5dd938dc-2f88-4da7-b367-96d52fb75e8c" />
-By default, the `schedule.yaml` file will be created empty, but you can change that by adding a new job at the bottom of the screen after the defaults section.
-
-
+<p>By default, the `schedule.yaml` file will be created empty, but you can change that by adding a new job at the bottom of the screen after the defaults section. </p>
+<br>
 <img width="1512" height="901" alt="Jobs Creation Section" src="https://github.com/user-attachments/assets/a25811c4-050d-4d56-a6d1-127614f4c50c" />
-After a job is added at the bottom you can create a name and cron schedule as well as entering ticket details. More than one ticket can be added to a single cron job.
-
-
+<p>After a job is added at the bottom you can create a name and cron schedule as well as entering ticket details. More than one ticket can be added to a single cron job.</p>
 
 ---
 
