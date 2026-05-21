@@ -13,6 +13,7 @@
       <div>
         <h1>Zammad Ticket Scheduler</h1>
         <p>Create, edit, and save scheduled Zammad tickets.</p>
+		<p>Please see the project <a href="https://github.com/eau-claire-energy-cooperative/zammad-ticket-scheduler/blob/main/README.md">Read Me</a> for specific details about using the ticketing scheduler.</p>
       </div>
 
       <div class="actions">
@@ -481,25 +482,24 @@ function escapeHtml(value) {
 }
 
 function toggleTheme() {
-  const enabled = document.getElementById("themeToggle").checked;
+  const toggle = document.getElementById("themeToggle");
+  const enabled = toggle.checked;
 
+  document.documentElement.classList.toggle("dark", enabled);
   document.body.classList.toggle("dark", enabled);
 
-  localStorage.setItem(
-    "theme",
-    enabled ? "dark" : "light"
-  );
+  localStorage.setItem("theme", enabled ? "dark" : "light");
 }
 
 function loadTheme() {
-  const saved = localStorage.getItem("theme") === "dark";
-
-  document.body.classList.toggle("dark", saved);
-
+  const enabled = localStorage.getItem("theme") === "dark";
   const toggle = document.getElementById("themeToggle");
 
+  document.documentElement.classList.toggle("dark", enabled);
+  document.body.classList.toggle("dark", enabled);
+
   if (toggle) {
-    toggle.checked = saved;
+    toggle.checked = enabled;
   }
 }
 
