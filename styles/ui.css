@@ -4,7 +4,9 @@
   --panel-soft: #f9fafb;
   --text: #111827;
   --muted: #667085;
+  --label: #475467;
   --border: #d0d5dd;
+  --input-bg: #ffffff;
   --primary: #2563eb;
   --primary-hover: #1d4ed8;
   --secondary: #e5e7eb;
@@ -13,6 +15,24 @@
   --success-bg: #dcfce7;
   --success: #166534;
   --shadow: 0 12px 30px rgba(16, 24, 40, 0.06);
+}
+
+html.dark,
+body.dark {
+  --bg: #0f172a;
+  --panel: #111827;
+  --panel-soft: #1f2937;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --label: #cbd5e1;
+  --border: #374151;
+  --input-bg: #0f172a;
+  --secondary: #374151;
+  --danger-bg: #4c1d1d;
+  --danger: #fca5a5;
+  --success-bg: #064e3b;
+  --success: #86efac;
+  --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
 * {
@@ -64,19 +84,23 @@ body {
   color: var(--muted);
 }
 
-.panel {
-  padding: 24px;
-  margin-bottom: 22px;
-}
-
+.actions,
 .section-header,
 .job-header,
-.subheader,
-.actions {
+.subheader {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+}
+
+.actions {
+  justify-content: flex-end;
+}
+
+.panel {
+  padding: 24px;
+  margin-bottom: 22px;
 }
 
 .section-header {
@@ -138,6 +162,10 @@ body {
   min-width: 0;
 }
 
+.field.small {
+  grid-column: span 2;
+}
+
 .field.medium {
   grid-column: span 4;
 }
@@ -150,13 +178,8 @@ body {
   grid-column: 1 / -1;
 }
 
-.field.small {
-  grid-column: span 2;
-}
-
 .checkbox-field {
   grid-column: span 2;
-  align-self: end;
   min-height: 72px;
   display: flex;
   flex-direction: column;
@@ -165,12 +188,12 @@ body {
 
 label {
   display: block;
+  margin-bottom: 7px;
+  color: var(--label);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #475467;
-  margin-bottom: 7px;
 }
 
 input,
@@ -180,9 +203,9 @@ select {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 11px 12px;
-  font: inherit;
-  background: #ffffff;
+  background: var(--input-bg);
   color: var(--text);
+  font: inherit;
 }
 
 textarea {
@@ -201,6 +224,13 @@ select:focus {
 input::placeholder,
 textarea::placeholder {
   color: #98a2b3;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder,
+body.dark input::placeholder,
+body.dark textarea::placeholder {
+  color: #6b7280;
 }
 
 .checkbox-field input {
@@ -256,11 +286,11 @@ button.small {
 }
 
 .ticket-card summary {
-  list-style: none;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  list-style: none;
   cursor: pointer;
   padding: 16px 18px;
   background: var(--panel-soft);
@@ -310,46 +340,13 @@ button.small {
   color: var(--muted);
 }
 
-@media (max-width: 1100px) {
-  .field,
-  .field.medium,
-  .field.large {
-    grid-column: span 6;
-  }
-
-  .field.small,
-  .checkbox-field {
-    grid-column: span 3;
-  }
-
-  .field.wide {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 720px) {
-  .app-header,
-  .job-header,
-  .subheader,
-  .actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .field,
-  .field.medium,
-  .field.large,
-  .field.small,
-  .checkbox-field,
-  .field.wide {
-    grid-column: 1 / -1;
-  }
-}
-
-.actions {
+.theme-toggle-wrap {
   display: flex;
-  gap: 12px;
   align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .theme-switch {
@@ -399,4 +396,44 @@ button.small {
 
 .theme-switch input#themeToggle:checked + .slider::before {
   transform: translateX(28px);
+}
+
+@media (max-width: 1100px) {
+  .field,
+  .field.medium,
+  .field.large {
+    grid-column: span 6;
+  }
+
+  .field.small,
+  .checkbox-field {
+    grid-column: span 3;
+  }
+
+  .field.wide {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-header,
+  .job-header,
+  .subheader,
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .theme-toggle-wrap {
+    justify-content: space-between;
+  }
+
+  .field,
+  .field.medium,
+  .field.large,
+  .field.small,
+  .checkbox-field,
+  .field.wide {
+    grid-column: 1 / -1;
+  }
 }

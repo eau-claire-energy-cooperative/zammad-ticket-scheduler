@@ -16,14 +16,18 @@
       </div>
 
       <div class="actions">
-		<label class="theme-switch">
-		  <input
-			type="checkbox"
-			id="themeToggle"
-			onchange="toggleTheme()"
-		  >
-		  <span class="slider"></span>
-		</label>
+		<div class="theme-toggle-wrap">
+		  <span>Dark Mode</span>
+
+		  <label class="theme-switch">
+			<input
+			  type="checkbox"
+			  id="themeToggle"
+			  onchange="toggleTheme()"
+			>
+			<span class="slider"></span>
+		  </label>
+		</div>
         <button class="secondary" onclick="addJob()">Add Job</button>
         <button class="primary" onclick="saveSchedule()">Save Schedule</button>
       </div>
