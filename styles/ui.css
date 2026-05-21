@@ -346,56 +346,57 @@ button.small {
   }
 }
 
+.actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
 .theme-switch {
   position: relative;
   display: inline-block;
+  flex: 0 0 auto;
   width: 58px;
   height: 30px;
+  margin: 0;
 }
 
-.theme-switch input {
+.theme-switch input#themeToggle {
+  position: absolute;
   opacity: 0;
-  width: 0;
-  height: 0;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
 }
 
-.slider {
+.theme-switch .slider {
   position: absolute;
   inset: 0;
-
   cursor: pointer;
-
   background: #d1d5db;
-
   border-radius: 999px;
-
-  transition: .25s;
+  transition: 0.25s;
 }
 
-.slider::before {
+.theme-switch .slider::before {
   content: "";
-
   position: absolute;
-
   width: 24px;
   height: 24px;
-
   left: 3px;
   top: 3px;
-
   background: white;
-
   border-radius: 50%;
-
-  transition: .25s;
-
-  box-shadow: 0 2px 8px rgba(0,0,0,.18);
+  transition: 0.25s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
 
-.theme-switch input:checked + .slider {
+.theme-switch input#themeToggle:checked + .slider {
   background: var(--primary);
 }
 
-.theme-switch input:checked + .slider::before {
+.theme-switch input#themeToggle:checked + .slider::before {
   transform: translateX(28px);
 }
