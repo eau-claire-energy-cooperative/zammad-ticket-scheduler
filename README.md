@@ -2,13 +2,14 @@
 
 A lightweight Python scheduler that creates Zammad tickets automatically on a cron-style schedule.
 
-This project is designed for Docker use (logs to stdout, supports clean shutdown via `docker stop`, reloads config automatically).
+This project is designed for Docker use (logs to stdout, supports clean shutdown via `docker stop`, reloads config automatically). Starting with version 1.2, there is a UI built into the docker container that runs so you do not need to edit the yaml file to make changes.
 
 ---
 
 ## Features
 
 - Cron-based scheduling (via `croniter`)
+- HTML based UI served locally via python
 - Reloads schedule YAML when changed (no need to restart the whole container)
 - Supports multiple scheduled jobs
 - Supports multiple tickets per job run
@@ -17,7 +18,7 @@ This project is designed for Docker use (logs to stdout, supports clean shutdown
 - Logs to stdout (Docker friendly)
 - Optional file logging (`./tmp/scheduler.log`)
 - Cleans up stale job temp files automatically
-- Supports clean shutdown via `docker stop` (SIGTERM)
+- Supports clean shutdown via `docker stop`
 
 ---
 
@@ -40,16 +41,22 @@ pip install pyyaml croniter
 This repo includes example config files:
 
 - `.env.example` (environment variables)
-- `schedule.example.yaml` (scheduler config)
+- `./config/schedule.example.yaml` (scheduler config)
 
 Copy these into place:
 
 - Copy `.env.example` to `.env`
-- Copy `schedule.example.yaml` to `schedule.yaml`
+- (Optional) Copy `./config/schedule.example.yaml` to `./config/schedule.yaml`
+**Note:** If `schedule.yaml` does not exist in the config directory, it will be created for you on first run.
 
 Then edit them to match your environment.
 
 ---
+## Scheduler UI
+In the newest update there is a UI that is hosted that allows the user to update the schedules and jobs without having to edit the physical yaml file. The default `docker-compose.yml` file maps the UI to port 18743, but if you would like to change that feel free to do so at your own comfort level. You are still welcome to use the yaml file to edit the ticket schedules if you would prefer.
+
+### Screenshots
+[insert screenshots here]
 
 ## Configuration
 
