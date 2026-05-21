@@ -345,3 +345,57 @@ button.small {
     grid-column: 1 / -1;
   }
 }
+
+.theme-switch {
+  position: relative;
+  display: inline-block;
+  width: 58px;
+  height: 30px;
+}
+
+.theme-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  inset: 0;
+
+  cursor: pointer;
+
+  background: #d1d5db;
+
+  border-radius: 999px;
+
+  transition: .25s;
+}
+
+.slider::before {
+  content: "";
+
+  position: absolute;
+
+  width: 24px;
+  height: 24px;
+
+  left: 3px;
+  top: 3px;
+
+  background: white;
+
+  border-radius: 50%;
+
+  transition: .25s;
+
+  box-shadow: 0 2px 8px rgba(0,0,0,.18);
+}
+
+.theme-switch input:checked + .slider {
+  background: var(--primary);
+}
+
+.theme-switch input:checked + .slider::before {
+  transform: translateX(28px);
+}

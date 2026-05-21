@@ -16,6 +16,14 @@
       </div>
 
       <div class="actions">
+		<label class="theme-switch">
+		  <input
+			type="checkbox"
+			id="themeToggle"
+			onchange="toggleTheme()"
+		  >
+		  <span class="slider"></span>
+		</label>
         <button class="secondary" onclick="addJob()">Add Job</button>
         <button class="primary" onclick="saveSchedule()">Save Schedule</button>
       </div>
@@ -467,6 +475,31 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 }
+
+function toggleTheme() {
+  const enabled = document.getElementById("themeToggle").checked;
+
+  document.body.classList.toggle("dark", enabled);
+
+  localStorage.setItem(
+    "theme",
+    enabled ? "dark" : "light"
+  );
+}
+
+function loadTheme() {
+  const saved = localStorage.getItem("theme") === "dark";
+
+  document.body.classList.toggle("dark", saved);
+
+  const toggle = document.getElementById("themeToggle");
+
+  if (toggle) {
+    toggle.checked = saved;
+  }
+}
+
+loadTheme();
 
 loadSchedule();
 </script>
