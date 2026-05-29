@@ -14,7 +14,7 @@ services:
       sh -c '
         mkdir -p /config &&
         test -f /config/schedule.yaml || printf "zammad:\n  timeout: 30\ndefaults:\n  group: Users\n  article:\n    type: note\n    internal: false\njobs: []\n" > /config/schedule.yaml &&
-        python scheduler.py --schedule --config-dir /config
+        python scheduler.py --config-dir /config
       '
 
   zammad_scheduler_ui:
