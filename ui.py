@@ -9,7 +9,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 BASE_DIR = Path(__file__).resolve().parent
-SCHEDULE_PATH = Path("/config/schedule.yaml")
+CONFIG_DIR = Path("/config")
+EXCLUDED_SCHEDULE_FILES = {"schedule.example.yaml"}
 
 EMPTY_SCHEDULE = {
     "zammad": {"timeout": 30},
@@ -36,24 +37,52 @@ class SchedulePayload(BaseModel):
     schedule: dict
 
 
-def ensure_schedule_file():
-    SCHEDULE_PATH.parent.mkdir(parents=True, exist_ok=True)
+def list_schedule_files() -> list[str]:
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
 
-    if not SCHEDULE_PATH.exists():
-        save_schedule(EMPTY_SCHEDULE)
+    return sorted(
+        p.name for p in CONFIG_DIR.glob("*.yaml")
+        if p.is_file() and p.name not in EXCLUDED_SCHEDULE_FILES
+    )
 
 
-def load_schedule():
-    ensure_schedule_file()
+def get_schedule_path(filename: str | None = None) -> Path:
+    files = list_schedule_files()
 
-    with SCHEDULE_PATH.open("r", encoding="utf-8") as f:
+    if filename is None:
+        if files:
+            filename = files[0]
+        else:
+            filename = "schedule.yaml"
+
+    if filename not in files and filename != "schedule.yaml":
+        raise HTTPException(status_code=400, detail="Invalid schedule file.")
+
+    return CONFIG_DIR / filename
+
+
+def ensure_schedule_file(filename: str | None = None) -> Path:
+    path = get_schedule_path(filename)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    if not path.exists():
+        save_schedule(EMPTY_SCHEDULE, path.name)
+
+    return path
+
+
+def load_schedule(filename: str | None = None):
+    path = ensure_schedule_file(filename)
+
+    with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f) or EMPTY_SCHEDULE
 
 
-def save_schedule(data: dict):
-    SCHEDULE_PATH.parent.mkdir(parents=True, exist_ok=True)
+def save_schedule(data: dict, filename: str | None = None):
+    path = get_schedule_path(filename)
+    path.parent.mkdir(parents=True, exist_ok=True)
 
-    with SCHEDULE_PATH.open("w", encoding="utf-8") as f:
+    with path.open("w", encoding="utf-8") as f:
         yaml.safe_dump(data, f, sort_keys=False)
 
 
@@ -155,8 +184,18 @@ def index():
 
 
 @app.get("/api/schedule")
-def get_schedule():
-    return load_schedule()
+def get_schedule(file: str | None = None):
+    return load_schedule(file)
+
+@app.get("/api/schedules")
+def get_schedule_files():
+    files = list_schedule_files()
+
+    if not files:
+        save_schedule(EMPTY_SCHEDULE, "schedule.yaml")
+        files = list_schedule_files()
+
+    return {"files": files}
 
 
 @app.post("/api/validate")
@@ -170,12 +209,12 @@ def validate(payload: SchedulePayload):
 
 
 @app.post("/api/schedule")
-def update_schedule(payload: SchedulePayload):
+def update_schedule(payload: SchedulePayload, file: str | None = None):
     errors = validate_schedule(payload.schedule)
 
     if errors:
         raise HTTPException(status_code=400, detail=errors)
 
-    save_schedule(payload.schedule)
+    save_schedule(payload.schedule, file)
 
-    return {"saved": True}
+    return {"saved": True, "file": file}

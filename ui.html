@@ -18,6 +18,8 @@
 
       <div class="actions">
 		<div class="theme-toggle-wrap">
+		  <label for="scheduleFile">Schedule file:</label>
+		  <select id="scheduleFile"></select>
 		  <span>Dark Mode</span>
 
 		  <label class="theme-switch">
@@ -75,6 +77,31 @@ let schedule = {
   jobs: []
 };
 
+let currentScheduleFile = null;
+
+async function loadScheduleFiles() {
+  const response = await fetch("/api/schedules");
+  const data = await response.json();
+
+  const select = document.getElementById("scheduleFile");
+  select.innerHTML = "";
+
+  data.files.forEach(file => {
+    const option = document.createElement("option");
+    option.value = file;
+    option.textContent = file;
+    select.appendChild(option);
+  });
+
+  currentScheduleFile = data.files[0] || "schedule.yaml";
+  select.value = currentScheduleFile;
+
+  select.addEventListener("change", async () => {
+    currentScheduleFile = select.value;
+    await loadScheduleFiles().then(loadSchedule);
+  });
+}
+
 function blankTicket() {
   return {
     title: "",
@@ -118,7 +145,7 @@ function normalizeSchedule() {
 }
 
 async function loadSchedule() {
-  const res = await fetch("/api/schedule");
+  const res = await fetch(`/api/schedule?file=${encodeURIComponent(currentScheduleFile)}`);
   schedule = await res.json();
 
   normalizeSchedule();
@@ -405,7 +432,7 @@ async function saveSchedule() {
 
   cleanSchedule();
 
-  const res = await fetch("/api/schedule", {
+  const res = await fetch(`/api/schedule?file=${encodeURIComponent(currentScheduleFile)}`, {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({ schedule })
@@ -505,7 +532,7 @@ function loadTheme() {
 
 loadTheme();
 
-loadSchedule();
+loadScheduleFiles().then(loadSchedule);
 </script>
 </body>
 </html>

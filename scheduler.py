@@ -32,10 +32,8 @@ from croniter import croniter
 
 from zammad_create_ticket import main as create_main
 
-
 # Global shutdown flag set by signal handlers
 SHOULD_EXIT = False
-
 
 def handle_shutdown_signal(signum, frame) -> None:
     """Signal handler for Ctrl+C (SIGINT) and SIGTERM (Docker)."""
@@ -49,6 +47,14 @@ def safe_filename(name: str) -> str:
     cleaned = re.sub(r"[^A-Za-z0-9._-]+", "_", name)
     return cleaned or "unnamed"
 
+# Edit this list to any config files you want to exclude
+EXCLUDED_CONFIG_FILES = {"schedule.example.yaml"}
+
+def discover_schedule_files(config_dir: Path) -> list[Path]:
+    return sorted(
+        p for p in config_dir.glob("*.yaml")
+        if p.is_file() and p.name not in EXCLUDED_CONFIG_FILES
+    )
 
 def get_project_tmp_dir() -> Path:
     """Ensure ./tmp exists next to this script and return it."""
@@ -111,152 +117,144 @@ def is_due(cron_expr: str, last_check: datetime, now: datetime) -> bool:
     next_time = itr.get_next(datetime)
     return last_check < next_time <= now
 
-def expected_tmp_files(cfg: dict, tmp_dir: Path) -> set[Path]:
-    """Return the set of tmp YAML files that should exist for current jobs."""
-    jobs = cfg.get("jobs", []) or []
+def expected_tmp_files(configs: dict[Path, dict], tmp_dir: Path) -> set[Path]:
     out: set[Path] = set()
-    for job in jobs:
-        if not isinstance(job, dict):
-            continue
-        name = job.get("name", "unnamed")
-        safe_name = safe_filename(name)
-        out.add(tmp_dir / f"sched_{safe_name}.yaml")
+
+    for schedule_path, cfg in configs.items():
+        jobs = cfg.get("jobs", []) or []
+
+        for job in jobs:
+            if not isinstance(job, dict):
+                continue
+
+            name = job.get("name", "unnamed")
+            safe_name = safe_filename(f"{schedule_path.stem}_{name}")
+            out.add(tmp_dir / f"sched_{safe_name}.yaml")
+
     return out
 
 
-def prune_stale_tmp_files(cfg: dict, tmp_dir: Path, logger: logging.Logger) -> None:
-    """Remove tmp YAML files for jobs that no longer exist in the schedule."""
-    keep = expected_tmp_files(cfg, tmp_dir)
-
+def prune_stale_tmp_files(configs: dict[Path, dict], tmp_dir: Path, logger: logging.Logger) -> None:
+    keep = expected_tmp_files(configs, tmp_dir)
     existing = sorted(tmp_dir.glob("sched_*.yaml"))
+
     logger.info(f"PRUNE: tmp_dir={tmp_dir} keep={len(keep)} existing={len(existing)}")
 
-    # Show what we think should be kept (filenames only)
-    for k in sorted(keep):
-        logger.info(f"  KEEP: {k.name}")
-
-    # Show what files we actually see on disk
-    for p in existing:
-        logger.info(f"  SEEN: {p.name}")
-
-    # Delete anything seen that isn't in keep
     for p in existing:
         if p not in keep:
             try:
                 p.unlink()
-                logger.info(f"  DELETE: {p.name}")
+                logger.info(f"DELETE: {p.name}")
             except Exception as e:
-                logger.warning(f"  DELETE FAILED: {p.name} | {e}")
+                logger.warning(f"DELETE FAILED: {p.name} | {e}")
 
+def load_all_schedules(config_dir: Path) -> dict[Path, dict]:
+    configs: dict[Path, dict] = {}
 
-def run_scheduler(schedule_path_str: str) -> None:
-    """
-    Main scheduler loop.
+    for schedule_path in discover_schedule_files(config_dir):
+        configs[schedule_path] = load_schedule(schedule_path)
 
-    - Reloads schedule YAML if it changes
-    - Runs due jobs and calls zammad_create_ticket
-    - Logs each job execution and exit code
-    """
+    return configs
+
+def run_scheduler(config_dir_str: str) -> None:
     global SHOULD_EXIT
 
-    schedule_path = Path(schedule_path_str).resolve()
+    config_dir = Path(config_dir_str).resolve()
     tmp_dir = get_project_tmp_dir()
     log_file = tmp_dir / "scheduler.log"
-
     logger = setup_logging(log_file)
 
     logger.info("Scheduler started. Checking every minute.")
-    logger.info(f"Schedule file: {schedule_path}")
-    if os.getenv("SCHEDULER_LOG_TO_FILE", "").strip() == "1":
-        logger.info("File logging: ON")
-    else:
-        logger.info("File logging: OFF (SCHEDULER_LOG_TO_FILE=0)")
+    logger.info(f"Config directory: {config_dir}")
 
-    if not schedule_path.exists():
-        raise FileNotFoundError(f"Schedule YAML not found: {schedule_path}")
+    if not config_dir.exists():
+        raise FileNotFoundError(f"Config directory not found: {config_dir}")
 
-    cfg = load_schedule(schedule_path)
-    last_mtime = schedule_mtime(schedule_path)
-    prune_stale_tmp_files(cfg, tmp_dir, logger)
+    configs = load_all_schedules(config_dir)
+    last_mtimes = {
+        path: schedule_mtime(path)
+        for path in discover_schedule_files(config_dir)
+    }
 
-    # Window tracking for cron checks
+    prune_stale_tmp_files(configs, tmp_dir, logger)
+
     last_run = datetime.now()
 
     while not SHOULD_EXIT:
         now = datetime.now()
 
-        # Reload schedule if file changed
         try:
-            mtime = schedule_mtime(schedule_path)
-            if mtime != last_mtime:
-                cfg = load_schedule(schedule_path)
-                last_mtime = mtime
-                logger.info("Schedule file changed; reloaded.")
-                prune_stale_tmp_files(cfg, tmp_dir, logger)
-        except Exception as e:
-            # Keep running using last known config
-            logger.error(f"Failed to reload schedule file: {e}", exc_info=True)
-
-        jobs = cfg.get("jobs", []) or []
-        defaults = cfg.get("defaults", {}) or {}
-        zammad = cfg.get("zammad", {}) or {}
-
-        # Run due jobs
-        for job in jobs:
-            if SHOULD_EXIT:
-                break
-
-            if not isinstance(job, dict):
-                continue
-
-            name = job.get("name", "unnamed")
-            cron = job.get("cron")
-
-            if not cron:
-                logger.warning(f"Job '{name}' missing cron; skipping.")
-                continue
-
-            try:
-                if not is_due(str(cron), last_run, now):
-                    continue
-            except Exception as e:
-                logger.error(f"Job '{name}' invalid cron '{cron}': {e}")
-                continue
-
-            safe_name = safe_filename(name)
-            tmp_file = tmp_dir / f"sched_{safe_name}.yaml"
-
-            run_cfg = {
-                "zammad": zammad,
-                "defaults": defaults,
-                "tickets": job.get("tickets", []) or [],
+            current_files = discover_schedule_files(config_dir)
+            current_mtimes = {
+                path: schedule_mtime(path)
+                for path in current_files
             }
 
-            try:
-                with tmp_file.open("w", encoding="utf-8") as fh:
-                    yaml.safe_dump(run_cfg, fh, sort_keys=False)
+            if current_mtimes != last_mtimes:
+                configs = load_all_schedules(config_dir)
+                last_mtimes = current_mtimes
+                logger.info("Schedule config files changed; reloaded.")
+                prune_stale_tmp_files(configs, tmp_dir, logger)
 
-                logger.info(f"Job started: {name}")
-                rc = int(create_main(["--config", str(tmp_file)]))
+        except Exception as e:
+            logger.error(f"Failed to reload schedule files: {e}", exc_info=True)
 
-                if rc == 0:
-                    logger.info(f"Job completed: {name}")
-                else:
-                    logger.error(f"Job completed with errors: {name} (exit code {rc})")
+        for schedule_path, cfg in configs.items():
+            jobs = cfg.get("jobs", []) or []
+            defaults = cfg.get("defaults", {}) or {}
+            zammad = cfg.get("zammad", {}) or {}
 
-            except Exception as e:
-                logger.error(f"Job FAILED: {name} | Error: {e}", exc_info=True)
+            for job in jobs:
+                if SHOULD_EXIT:
+                    break
 
-        # Advance cron window
+                if not isinstance(job, dict):
+                    continue
+
+                name = job.get("name", "unnamed")
+                cron = job.get("cron")
+
+                if not cron:
+                    logger.warning(f"{schedule_path.name}: Job '{name}' missing cron; skipping.")
+                    continue
+
+                try:
+                    if not is_due(str(cron), last_run, now):
+                        continue
+                except Exception as e:
+                    logger.error(f"{schedule_path.name}: Job '{name}' invalid cron '{cron}': {e}")
+                    continue
+
+                safe_name = safe_filename(f"{schedule_path.stem}_{name}")
+                tmp_file = tmp_dir / f"sched_{safe_name}.yaml"
+
+                run_cfg = {
+                    "zammad": zammad,
+                    "defaults": defaults,
+                    "tickets": job.get("tickets", []) or [],
+                }
+
+                try:
+                    with tmp_file.open("w", encoding="utf-8") as fh:
+                        yaml.safe_dump(run_cfg, fh, sort_keys=False)
+
+                    logger.info(f"Job started: {schedule_path.name} / {name}")
+                    rc = int(create_main(["--config", str(tmp_file)]))
+
+                    if rc == 0:
+                        logger.info(f"Job completed: {schedule_path.name} / {name}")
+                    else:
+                        logger.error(f"Job completed with errors: {schedule_path.name} / {name} (exit code {rc})")
+
+                except Exception as e:
+                    logger.error(f"Job FAILED: {schedule_path.name} / {name} | Error: {e}", exc_info=True)
+
         last_run = now
 
-        # Sleep until next minute boundary (wake up and check SHOULD_EXIT again)
         next_minute = datetime.now().replace(second=0, microsecond=0) + timedelta(minutes=1)
         sleep_for = max(0, (next_minute - datetime.now()).total_seconds())
-
-        # Sleep in small chunks so SIGTERM exits promptly even if we're "sleeping"
-        # (Signals set SHOULD_EXIT; chunking just makes responsiveness obvious.)
         end = time.time() + sleep_for
+
         while not SHOULD_EXIT and time.time() < end:
             time.sleep(min(1.0, end - time.time()))
 
@@ -271,11 +269,11 @@ if __name__ == "__main__":
     import argparse
 
     p = argparse.ArgumentParser()
-    p.add_argument("--schedule", required=True, help="Path to schedule YAML")
+    p.add_argument("--config-dir", default="/config", help="Directory containing schedule YAML files")
     args = p.parse_args()
 
     try:
-        run_scheduler(args.schedule)
+        run_scheduler(args.config_dir)
     except Exception as e:
         print(f"Scheduler crashed: {e}", file=sys.stderr)
         raise
