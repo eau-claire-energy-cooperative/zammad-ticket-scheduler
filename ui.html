@@ -81,25 +81,40 @@ let currentScheduleFile = null;
 
 async function loadScheduleFiles() {
   const response = await fetch("/api/schedules");
+
+  if (!response.ok) {
+    throw new Error("Could not load schedule files.");
+  }
+
   const data = await response.json();
+  const files = data.files || [];
 
   const select = document.getElementById("scheduleFile");
   select.innerHTML = "";
 
-  data.files.forEach(file => {
+  if (!files.length) {
+    const option = document.createElement("option");
+    option.value = "schedule.yaml";
+    option.textContent = "schedule.yaml";
+    select.appendChild(option);
+    currentScheduleFile = "schedule.yaml";
+    return;
+  }
+
+  files.forEach(file => {
     const option = document.createElement("option");
     option.value = file;
     option.textContent = file;
     select.appendChild(option);
   });
 
-  currentScheduleFile = data.files[0] || "schedule.yaml";
+  currentScheduleFile = currentScheduleFile || files[0];
   select.value = currentScheduleFile;
 
-  select.addEventListener("change", async () => {
+  select.onchange = async () => {
     currentScheduleFile = select.value;
-    await loadScheduleFiles().then(loadSchedule);
-  });
+    await loadSchedule();
+  };
 }
 
 function blankTicket() {
@@ -449,7 +464,7 @@ async function saveSchedule() {
   }
 
   status.className = "status ok";
-  status.textContent = "Saved schedule.yaml.";
+  status.textContent = `Saved ${currentScheduleFile}.`;
 }
 
 function cleanSchedule() {
@@ -532,7 +547,13 @@ function loadTheme() {
 
 loadTheme();
 
-loadScheduleFiles().then(loadSchedule);
+loadScheduleFiles()
+  .then(loadSchedule)
+  .catch(err => {
+    const status = document.getElementById("status");
+    status.className = "status err";
+    status.textContent = err.message;
+  });
 </script>
 </body>
 </html>
