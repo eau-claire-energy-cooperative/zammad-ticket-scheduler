@@ -12,6 +12,9 @@ BASE_DIR = Path(__file__).resolve().parent
 CONFIG_DIR = Path("/config")
 EXCLUDED_SCHEDULE_FILES = {"schedule.example.yaml"}
 
+HISTORY_DIR = CONFIG_DIR / "history"
+MAX_HISTORY_FILES = 3
+
 EMPTY_SCHEDULE = {
     "zammad": {"timeout": 30},
     "defaults": {
@@ -77,6 +80,29 @@ def load_schedule(filename: str | None = None):
     with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f) or EMPTY_SCHEDULE
 
+def backup_schedule_file(path: Path) -> None:
+    if not path.exists():
+        return
+
+    history_subdir = HISTORY_DIR / path.stem
+    history_subdir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    backup_path = history_subdir / f"{path.stem}.{timestamp}.yaml"
+
+    backup_path.write_text(
+        path.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    backups = sorted(
+        history_subdir.glob("*.yaml"),
+        key=lambda p: p.stat().st_mtime_ns,
+        reverse=True,
+    )
+
+    for old_backup in backups[MAX_HISTORY_FILES:]:
+        old_backup.unlink()
 
 def save_schedule(data: dict, filename: str | None = None):
     path = get_schedule_path(filename)
@@ -215,6 +241,9 @@ def update_schedule(payload: SchedulePayload, file: str | None = None):
     if errors:
         raise HTTPException(status_code=400, detail=errors)
 
+    path = get_schedule_path(file)
+
+    backup_schedule_file(path)
     save_schedule(payload.schedule, file)
 
     return {"saved": True, "file": file}
