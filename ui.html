@@ -14,12 +14,17 @@
         <h1>Zammad Ticket Scheduler</h1>
         <p>Create, edit, and save scheduled Zammad tickets.</p>
 		<p>Please see the project <a href="https://github.com/eau-claire-energy-cooperative/zammad-ticket-scheduler/blob/main/README.md" target="_blank">Read Me</a> for specific details about using the ticketing scheduler.</p>
+		
+		<div class="schedule-file-picker">
+		  <label for="scheduleFile">Schedule file:</label>
+		  <select id="scheduleFile">
+			<option value="">Loading schedule files...</option>
+		  </select>
+		</div>
       </div>
 
       <div class="actions">
 		<div class="theme-toggle-wrap">
-		  <label for="scheduleFile">Schedule file:</label>
-		  <select id="scheduleFile"></select>
 		  <span>Dark Mode</span>
 
 		  <label class="theme-switch">

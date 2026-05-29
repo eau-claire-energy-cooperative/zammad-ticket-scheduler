@@ -437,3 +437,16 @@ button.small {
     grid-column: 1 / -1;
   }
 }
+
+.schedule-file-picker {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.schedule-file-picker select {
+  min-width: 220px;
+  padding: 0.4rem 0.6rem;
+}
