@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## 2.1
 
+### Added
+
+- Line on the UI to reference the README for more details
+
 ### Changed
 
 - The user interface files to accept multiple config files
@@ -17,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 
 - Components (`styles/ui.css`, `ui.html`, and `ui.py`) for a web based user interface
+- Automatic creation of a `schedule.yaml` file if one does not exist
 
 ### Changed
 
@@ -37,4 +42,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Python `zammad_create_ticket.py` and `schedule.py` files to create and schedule tickets
 - Required `Dockerfile` and `docker-compose.yml` files to spin up the docker container
-- Generic `schdule.example.yaml` and `.env.example` file examples for what is re
+- Generic `schdule.example.yaml` and `.env.example` file examples
